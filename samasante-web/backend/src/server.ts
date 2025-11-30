@@ -3,9 +3,9 @@ import { Hono } from 'hono'
 import { cors } from 'hono/cors'
 import { api } from './routes/index.js'
 import { serve } from '@hono/node-server'
+import type { HonoEnv } from './types/env.js'
 
-
-const app = new Hono()
+const app = new Hono<HonoEnv>()
 app.use('*', cors())
 app.get('/', (c) => c.text('SamaSanté API OK'))
 app.route('/api', api)
@@ -18,3 +18,4 @@ app.onError((err, c) => {
 const port = Number(process.env.PORT || 3000)
 serve({ fetch: app.fetch, port })
 console.log(`API running on http://localhost:${port}`)
+

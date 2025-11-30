@@ -10,22 +10,28 @@ const sans = Inter({ subsets: ["latin"], variable: "--font-sans" })
 const mono = JetBrains_Mono({ subsets: ["latin"], variable: "--font-mono" })
 
 export const metadata: Metadata = {
-  title: "SAMASANTE - Plateforme de Santé Numérique du Sénégal",
+  title: "AMINA - Plateforme de Santé Numérique du Sénégal",
   description:
     "Prenez rendez-vous avec les meilleurs médecins du Sénégal. Plateforme de santé numérique moderne et sécurisée.",
-  generator: "SAMASANTE",
+  generator: "AMINA",
 }
+import { AuthProvider } from "@/components/auth-provider"
+
+// ... imports
+
 export default function RootLayout({
   children,
 }: {
   children: React.ReactNode
 }) {
   return (
-    <html lang="fr" className={`${sans.variable} ${mono.variable}`}>
-      <body className="font-sans bg-background text-foreground">
-        <Suspense fallback={null}>{children}</Suspense>
+    <html lang="fr" className={`${sans.variable} ${mono.variable}`} suppressHydrationWarning>
+      <body className="font-sans bg-background text-foreground" suppressHydrationWarning>
+        <AuthProvider>
+          {children}
+        </AuthProvider>
         <Toaster richColors closeButton />
-        <Analytics />
+        {process.env.NODE_ENV === 'production' && <Analytics />}
       </body>
     </html>
   )

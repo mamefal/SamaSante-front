@@ -1,101 +1,100 @@
 "use client"
 
-import { useState } from "react"
 import Link from "next/link"
 import { usePathname } from "next/navigation"
-import { Button } from "@/components/ui/button"
 import { cn } from "@/lib/utils"
-import { LayoutDashboard, Calendar, Clock, Users, User, BarChart3, Settings, LogOut, Menu, X } from "lucide-react"
+import {
+  LayoutDashboard,
+  Calendar,
+  Users,
+  FileText,
+  FlaskConical,
+  Activity,
+  Settings,
+  LogOut,
+  Stethoscope
+} from "lucide-react"
+import { logout } from "@/lib/auth"
+import { useRouter } from "next/navigation"
+import { type LucideIcon } from "lucide-react"
 
-const navigation = [
+interface NavItem {
+  name: string
+  href: string
+  icon: LucideIcon
+}
+
+const navigation: NavItem[] = [
   { name: "Tableau de bord", href: "/doctor", icon: LayoutDashboard },
-  { name: "Mon agenda", href: "/doctor/calendar", icon: Calendar },
-  { name: "Disponibilités", href: "/doctor/availability", icon: Clock },
-  { name: "Mes patients", href: "/doctor/patients", icon: Users },
-  { name: "Mon profil", href: "/doctor/profile", icon: User },
-  { name: "Statistiques", href: "/doctor/stats", icon: BarChart3 },
+  { name: "Agenda", href: "/doctor/calendar", icon: Calendar },
+  { name: "Patients", href: "/doctor/patients", icon: Users },
+  { name: "Consultations", href: "/doctor/stats", icon: Activity },
+  { name: "Ordonnances", href: "/doctor/prescriptions", icon: FileText },
+  { name: "Analyses", href: "/doctor/lab-orders", icon: FlaskConical },
+  { name: "Certificats", href: "/doctor/certificates", icon: Stethoscope },
   { name: "Paramètres", href: "/doctor/settings", icon: Settings },
 ]
 
 export function DoctorSidebar() {
-  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false)
   const pathname = usePathname()
+  const router = useRouter()
+
+  const handleLogout = async () => {
+    await logout()
+    router.push("/auth/login")
+  }
 
   return (
-    <>
-      {/* Mobile menu button */}
-      <div className="lg:hidden fixed top-4 left-4 z-50">
-        <Button
-          variant="outline"
-          size="sm"
-          onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
-          className="bg-background"
-        >
-          {isMobileMenuOpen ? <X className="h-4 w-4" /> : <Menu className="h-4 w-4" />}
-        </Button>
-      </div>
-
-      {/* Sidebar */}
-      <div
-        className={cn(
-          "fixed inset-y-0 left-0 z-40 w-64 bg-card border-r border-border transform transition-transform duration-200 ease-in-out lg:translate-x-0 lg:static lg:inset-0",
-          isMobileMenuOpen ? "translate-x-0" : "-translate-x-full",
-        )}
-      >
-        <div className="flex flex-col h-full">
-          {/* Logo */}
-          <div className="flex items-center px-6 py-4 border-b border-border">
-            <div className="w-8 h-8 bg-primary rounded-lg flex items-center justify-center mr-3">
-              <span className="text-primary-foreground font-bold text-sm">S</span>
-            </div>
-            <div>
-              <h1 className="text-lg font-bold text-foreground">SAMASANTE</h1>
-              <p className="text-xs text-muted-foreground">Espace Médecin</p>
-            </div>
+    <div className="hidden lg:flex fixed inset-y-0 left-0 z-40 w-64 flex-col bg-white dark:bg-black border-r border-gray-200 dark:border-gray-800">
+      {/* Logo */}
+      <div className="p-4 border-b border-gray-200 dark:border-gray-800">
+        <div className="flex items-center gap-2">
+          <div className="h-7 w-7 bg-gradient-to-br from-blue-500 to-cyan-500 rounded-lg flex items-center justify-center">
+            <Stethoscope className="h-4 w-4 text-white" />
           </div>
-
-          {/* Navigation */}
-          <nav className="flex-1 px-4 py-6 space-y-2">
-            {navigation.map((item) => {
-              const isActive = pathname === item.href
-              return (
-                <Link
-                  key={item.name}
-                  href={item.href}
-                  onClick={() => setIsMobileMenuOpen(false)}
-                  className={cn(
-                    "flex items-center px-3 py-2 text-sm font-medium rounded-md transition-colors",
-                    isActive
-                      ? "bg-primary text-primary-foreground"
-                      : "text-muted-foreground hover:text-foreground hover:bg-muted",
-                  )}
-                >
-                  <item.icon className="mr-3 h-4 w-4" />
-                  {item.name}
-                </Link>
-              )
-            })}
-          </nav>
-
-          {/* Logout */}
-          <div className="px-4 py-4 border-t border-border">
-            <form action="/auth/signout" method="post">
-              <Button variant="ghost" size="sm" type="submit" className="w-full justify-start">
-                <LogOut className="mr-3 h-4 w-4" />
-                Déconnexion
-              </Button>
-            </form>
+          <div>
+            <h2 className="text-sm font-semibold">AMINA</h2>
+            <p className="text-xs text-gray-500">Médecin</p>
           </div>
         </div>
       </div>
 
-      {/* Mobile overlay */}
-      {isMobileMenuOpen && (
-        <div
-          className="fixed inset-0 bg-black bg-opacity-50 z-30 lg:hidden"
-          onClick={() => setIsMobileMenuOpen(false)}
-        />
-      )}
-    </>
+      {/* Navigation */}
+      <div className="flex-1 overflow-y-auto py-4">
+        <nav className="space-y-0.5 px-3">
+          {navigation.map((item) => {
+            const isActive = pathname === item.href
+            const Icon = item.icon
+
+            return (
+              <Link
+                key={item.href}
+                href={item.href}
+                className={cn(
+                  "flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-colors",
+                  isActive
+                    ? "bg-gray-100 dark:bg-gray-900 text-black dark:text-white"
+                    : "text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-900/50 hover:text-black dark:hover:text-white"
+                )}
+              >
+                <Icon className="h-4 w-4" />
+                <span>{item.name}</span>
+              </Link>
+            )
+          })}
+        </nav>
+      </div>
+
+      {/* Logout */}
+      <div className="border-t border-gray-200 dark:border-gray-800 p-3">
+        <button
+          onClick={handleLogout}
+          className="flex w-full items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-900/50 hover:text-red-600 dark:hover:text-red-400 transition-colors"
+        >
+          <LogOut className="h-4 w-4" />
+          <span>Déconnexion</span>
+        </button>
+      </div>
+    </div>
   )
 }

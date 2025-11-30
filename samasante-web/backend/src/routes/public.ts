@@ -5,7 +5,9 @@ import { zValidator } from '@hono/zod-validator'
 import { prisma } from '../lib/prisma.js'
 import { getDailySlots, isBookable } from '../lib/slots.js'
 
-export const pub = new Hono()
+import type { HonoEnv } from '../types/env.js'
+
+export const pub = new Hono<HonoEnv>()
 
 // --- Règles (.env) ---
 const MIN_BOOK_AHEAD_MIN = parseInt(process.env.MIN_BOOK_AHEAD_MIN ?? '60', 10)
@@ -31,8 +33,8 @@ pub.post('/patients', zValidator('json', CreatePatient), async (c) => {
       firstName: b.firstName,
       lastName: b.lastName,
       dob,
-      phone: b.phone,
-      email: b.email,
+      phone: b.phone ?? null,
+      email: b.email ?? null,
       medicalFile: { create: {} }
     }
   })
@@ -45,9 +47,9 @@ pub.get('/doctors', async (c) => {
   const list = await prisma.doctor.findMany({
     where: {
       OR: [
-        { firstName: { contains: q, mode: 'insensitive' } },
-        { lastName: { contains: q, mode: 'insensitive' } },
-        { specialty: { contains: q, mode: 'insensitive' } }
+        { firstName: { contains: q } },
+        { lastName: { contains: q } },
+        { specialty: { contains: q } }
       ]
     },
     take: 50,
@@ -65,7 +67,7 @@ const SlotsQuery = z.object({
 pub.get('/doctors/:id/slots', zValidator('query', SlotsQuery), async (c) => {
   const doctorId = Number(c.req.param('id'))
   const { date, durationMinutes, siteId } = c.req.valid('query')
-  const slots = await getDailySlots({ doctorId, date, durationMinutes, siteId })
+  const slots = await getDailySlots({ doctorId, date, durationMinutes, ...(siteId ? { siteId } : {}) })
   return c.json({ doctorId, date, slots })
 })
 
@@ -93,7 +95,7 @@ pub.post('/appointments', zValidator('json', BookSchema), async (c) => {
     startISO: b.start,
     endISO: b.end,
     durationMinutes: b.durationMinutes ?? 20,
-    siteId: b.siteId
+    ...(b.siteId ? { siteId: b.siteId } : {})
   })
   if (!ok) return c.text('Créneau indisponible', 409)
 
@@ -134,7 +136,7 @@ pub.get('/doctors/:id/next-availability', async (c) => {
   for (let i = 0; i < 30; i++) {
     const d = new Date(+start + i * 24 * 60 * 60 * 1000)
     const ymd = d.toISOString().slice(0, 10)
-    const slots = await getDailySlots({ doctorId, date: ymd, durationMinutes, siteId })
+    const slots = await getDailySlots({ doctorId, date: ymd, durationMinutes, ...(siteId ? { siteId } : {}) })
     if (slots.length) return c.json({ doctorId, date: ymd, slot: slots[0] })
   }
   return c.text('Aucune disponibilité trouvée sur 30 jours', 404)
@@ -142,42 +144,42 @@ pub.get('/doctors/:id/next-availability', async (c) => {
 
 /// GET /api/public/doctors/:id/week-slots?from=YYYY-MM-DD&durationMinutes=20&siteId=...&hidePast=true
 const WeekSlotsQuery = z.object({
-    from: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).default(new Date().toISOString().slice(0, 10)),
-    durationMinutes: z.coerce.number().min(5).max(120).default(20),
-    siteId: z.coerce.number().optional(),
-    hidePast: z.coerce.boolean().default(true) // filtre les créneaux passés (et < délai mini)
-  })
-  
-  pub.get('/doctors/:id/week-slots', zValidator('query', WeekSlotsQuery), async (c) => {
-    const doctorId = Number(c.req.param('id'))
-    if (Number.isNaN(doctorId)) return c.text('doctorId invalide', 400)
-    const { from, durationMinutes, siteId, hidePast } = c.req.valid('query')
-  
-    const start = new Date(from + 'T00:00:00')
-    const now = new Date()
-    const minAheadMs = (MIN_BOOK_AHEAD_MIN ?? 0) * 60 * 1000
-  
-    const days: { date: string; slots: { start: string; end: string; durationMinutes: number }[] }[] = []
-  
-    for (let i = 0; i < 7; i++) {
-      const d = new Date(+start + i * 86400000)
-      const ymd = d.toISOString().slice(0, 10)
-  
-      let slots = await getDailySlots({ doctorId, date: ymd, durationMinutes, siteId })
-  
-      if (hidePast) {
-        // garde uniquement les créneaux dont le début est >= maintenant + délai mini
-        slots = slots.filter(s => (new Date(s.start).getTime() - now.getTime()) >= minAheadMs)
-      }
-  
-      days.push({ date: ymd, slots })
+  from: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).default(new Date().toISOString().slice(0, 10)),
+  durationMinutes: z.coerce.number().min(5).max(120).default(20),
+  siteId: z.coerce.number().optional(),
+  hidePast: z.coerce.boolean().default(true) // filtre les créneaux passés (et < délai mini)
+})
+
+pub.get('/doctors/:id/week-slots', zValidator('query', WeekSlotsQuery), async (c) => {
+  const doctorId = Number(c.req.param('id'))
+  if (Number.isNaN(doctorId)) return c.text('doctorId invalide', 400)
+  const { from, durationMinutes, siteId, hidePast } = c.req.valid('query')
+
+  const start = new Date(from + 'T00:00:00')
+  const now = new Date()
+  const minAheadMs = (MIN_BOOK_AHEAD_MIN ?? 0) * 60 * 1000
+
+  const days: { date: string; slots: { start: string; end: string; durationMinutes: number }[] }[] = []
+
+  for (let i = 0; i < 7; i++) {
+    const d = new Date(+start + i * 86400000)
+    const ymd = d.toISOString().slice(0, 10)
+
+    let slots = await getDailySlots({ doctorId, date: ymd, durationMinutes, ...(siteId ? { siteId } : {}) })
+
+    if (hidePast) {
+      // garde uniquement les créneaux dont le début est >= maintenant + délai mini
+      slots = slots.filter(s => (new Date(s.start).getTime() - now.getTime()) >= minAheadMs)
     }
-  
-    return c.json({
-      doctorId,
-      from,
-      to: new Date(+start + 6 * 86400000).toISOString().slice(0, 10),
-      days
-    })
+
+    days.push({ date: ymd, slots })
+  }
+
+  return c.json({
+    doctorId,
+    from,
+    to: new Date(+start + 6 * 86400000).toISOString().slice(0, 10),
+    days
   })
-  
+})
+

@@ -1,46 +1,46 @@
-import { createClient } from "@/lib/supabase/server"
+
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { TrendingUp, TrendingDown, Users, Calendar, DollarSign, Star, Clock, Activity } from "lucide-react"
 
 export default async function DoctorStats() {
-  const supabase = await createClient()
+
 
   // Mock statistics data
   const stats = {
     overview: {
-      totalRevenue: 780000,
-      revenueGrowth: 15.2,
-      totalAppointments: 156,
-      appointmentsGrowth: 12.8,
-      totalPatients: 47,
-      patientsGrowth: 8.5,
-      averageRating: 4.8,
-      ratingGrowth: 0.3,
+      totalRevenue: 0,
+      revenueGrowth: 0,
+      totalAppointments: 0,
+      appointmentsGrowth: 0,
+      totalPatients: 0,
+      patientsGrowth: 0,
+      averageRating: 0,
+      ratingGrowth: 0,
     },
     monthlyData: [
-      { month: "Nov 2024", appointments: 18, revenue: 450000, newPatients: 5 },
-      { month: "Déc 2024", appointments: 22, revenue: 550000, newPatients: 8 },
-      { month: "Jan 2025", appointments: 15, revenue: 375000, newPatients: 3 },
+      { month: "Nov 2024", appointments: 0, revenue: 0, newPatients: 0 },
+      { month: "Déc 2024", appointments: 0, revenue: 0, newPatients: 0 },
+      { month: "Jan 2025", appointments: 0, revenue: 0, newPatients: 0 },
     ],
     appointmentTypes: [
-      { type: "Consultation", count: 89, percentage: 57, revenue: 445000 },
-      { type: "Suivi", count: 45, percentage: 29, revenue: 225000 },
-      { type: "Contrôle", count: 22, percentage: 14, revenue: 110000 },
+      { type: "Consultation", count: 0, percentage: 0, revenue: 0 },
+      { type: "Suivi", count: 0, percentage: 0, revenue: 0 },
+      { type: "Contrôle", count: 0, percentage: 0, revenue: 0 },
     ],
     patientAgeGroups: [
-      { group: "0-2 ans", count: 15, percentage: 32 },
-      { group: "3-6 ans", count: 12, percentage: 26 },
-      { group: "7-12 ans", count: 11, percentage: 23 },
-      { group: "13-18 ans", count: 9, percentage: 19 },
+      { group: "0-2 ans", count: 0, percentage: 0 },
+      { group: "3-6 ans", count: 0, percentage: 0 },
+      { group: "7-12 ans", count: 0, percentage: 0 },
+      { group: "13-18 ans", count: 0, percentage: 0 },
     ],
     weeklySchedule: [
-      { day: "Lundi", appointments: 5, hours: 6 },
-      { day: "Mardi", appointments: 4, hours: 5 },
-      { day: "Mercredi", appointments: 3, hours: 3 },
-      { day: "Jeudi", appointments: 5, hours: 6 },
-      { day: "Vendredi", appointments: 3, hours: 3 },
+      { day: "Lundi", appointments: 0, hours: 0 },
+      { day: "Mardi", appointments: 0, hours: 0 },
+      { day: "Mercredi", appointments: 0, hours: 0 },
+      { day: "Jeudi", appointments: 0, hours: 0 },
+      { day: "Vendredi", appointments: 0, hours: 0 },
       { day: "Samedi", appointments: 0, hours: 0 },
       { day: "Dimanche", appointments: 0, hours: 0 },
     ],

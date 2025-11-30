@@ -1,15 +1,16 @@
 // src/lib/auth.ts
 import { jwtDecode } from "jwt-decode"
 
-const TOKEN_KEY = "samasante:token"
-const USER_KEY = "samasante:user"
+const TOKEN_KEY = "amina:token"
+const USER_KEY = "amina:user"
 
 // --- Types ---
-export type UserRole = "ADMIN" | "DOCTOR" | "PATIENT"
+export type UserRole = "SUPER_ADMIN" | "HOSPITAL_ADMIN" | "DOCTOR" | "PATIENT" | "ADMIN"
 
 export type User = {
   id: number
   email?: string
+  name?: string
   role: UserRole
   doctor?: { id: number } | null
   doctorId?: number | null
@@ -33,6 +34,9 @@ function hasWindow() {
 export function setToken(token: string, userFromApi?: User) {
   if (!hasWindow()) return
   localStorage.setItem(TOKEN_KEY, token)
+
+  // Set cookie for middleware
+  document.cookie = `token=${token}; path=/; max-age=2592000; SameSite=Lax`
 
   // Optionnel : persister un "user" minimal si l’API n’en renvoie pas
   if (userFromApi) {
@@ -63,6 +67,9 @@ export function clearToken() {
 export function setUser(u: User) {
   if (!hasWindow()) return
   localStorage.setItem(USER_KEY, JSON.stringify(u))
+
+  // Set cookie for middleware
+  document.cookie = `user=${encodeURIComponent(JSON.stringify(u))}; path=/; max-age=2592000; SameSite=Lax`
 }
 
 export function getUser(): User | null {
@@ -84,6 +91,12 @@ export function clearUser() {
 export function logout() {
   clearToken()
   clearUser()
+
+  // Clear cookies
+  if (hasWindow()) {
+    document.cookie = 'token=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT'
+    document.cookie = 'user=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT'
+  }
 }
 
 // --- JWT utils ---

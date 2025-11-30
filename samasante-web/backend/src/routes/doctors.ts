@@ -3,22 +3,54 @@ import { z } from 'zod'
 import { zValidator } from '@hono/zod-validator'
 import { prisma } from '../lib/prisma'
 import { requireAuth } from '../middlewares/auth'
+import { tenantMiddleware, getOrganizationFilter } from '../middleware/tenant'
 
-export const doctors = new Hono()
+import type { HonoEnv } from '../types/env.js'
+
+export const doctors = new Hono<HonoEnv>()
+
+// Require authentication first
+doctors.use('*', requireAuth())
+
+// Apply tenant middleware to all routes
+doctors.use('*', tenantMiddleware)
 
 doctors.get('/', async (c) => {
   const q = c.req.query('q') || ''
+  const orgFilter = getOrganizationFilter(c)
+
   const list = await prisma.doctor.findMany({
     where: {
+      ...orgFilter, // Filtre par organisation
       OR: [
-        { firstName: { contains: q, mode: 'insensitive' } },
-        { lastName: { contains: q, mode: 'insensitive' } },
-        { specialty: { contains: q, mode: 'insensitive' } }
+        { firstName: { contains: q } },
+        { lastName: { contains: q } },
+        { specialty: { contains: q } }
       ]
+    },
+    include: {
+      organization: {
+        select: {
+          id: true,
+          name: true,
+          slug: true
+        }
+      }
     },
     take: 50
   })
   return c.json(list)
+})
+
+// Get doctor statistics for dashboard
+doctors.get('/stats', async (c) => {
+  // Return empty stats instead of real data
+  return c.json({
+    totalPatients: 0,
+    todayAppointments: [],
+    weeklyAppointments: [],
+    recentActivity: []
+  })
 })
 
 const VerifySchema = z.object({
@@ -27,7 +59,7 @@ const VerifySchema = z.object({
 })
 
 doctors.post('/:id/verify',
-  requireAuth(['ADMIN']),
+  requireAuth(['SUPER_ADMIN']), // Seul Super Admin peut vérifier
   zValidator('json', VerifySchema),
   async (c) => {
     const id = Number(c.req.param('id'))

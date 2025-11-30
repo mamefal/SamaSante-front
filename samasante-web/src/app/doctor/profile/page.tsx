@@ -1,4 +1,4 @@
-import { createClient } from "@/lib/supabase/server"
+
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -9,12 +9,18 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { User, Star, MapPin, Phone, GraduationCap, Award, Save } from "lucide-react"
 
 export default async function DoctorProfile() {
-  const supabase = await createClient()
 
-  const { data } = await supabase.auth.getUser()
-  const user = data.user
-  const firstName = user?.user_metadata?.first_name || ""
-  const lastName = user?.user_metadata?.last_name || ""
+
+  // Mock user data
+  const user = {
+    email: "docteur@samasante.sn",
+    user_metadata: {
+      first_name: "Awa",
+      last_name: "Diop",
+    },
+  }
+  const firstName = user.user_metadata.first_name
+  const lastName = user.user_metadata.last_name
 
   // Mock doctor profile data
   const doctorProfile = {
@@ -111,6 +117,9 @@ export default async function DoctorProfile() {
               <div>
                 <p className="text-2xl font-bold text-primary">{doctorProfile.totalPatients}</p>
                 <p className="text-xs text-muted-foreground">Patients</p>
+                <p className="text-sm text-muted-foreground">
+                  Plateforme AMINA
+                </p>
               </div>
               <div>
                 <p className="text-2xl font-bold text-primary">{doctorProfile.totalConsultations}</p>

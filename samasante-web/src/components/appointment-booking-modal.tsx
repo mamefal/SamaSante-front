@@ -1,6 +1,7 @@
 "use client"
 
 import { useState } from "react"
+import { useRouter } from "next/navigation"
 import { Button } from "@/components/ui/button"
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { Label } from "@/components/ui/label"
@@ -28,6 +29,7 @@ export function AppointmentBookingModal({
   speciality,
   patientId,
 }: AppointmentBookingModalProps) {
+  const router = useRouter()
   const [selectedDate, setSelectedDate] = useState<Date>()
   const [selectedTime, setSelectedTime] = useState<string>("")
   const [reason, setReason] = useState("")
@@ -74,7 +76,7 @@ export function AppointmentBookingModal({
         setSelectedTime("")
         setReason("")
         // Show success message or refresh appointments
-        window.location.reload()
+        router.refresh()
       } else {
         const error = await response.json()
         alert(error.error || "Erreur lors de la prise de rendez-vous")
