@@ -1,4 +1,4 @@
-import { createClient } from "../lib/prisma/server"
+
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -8,7 +8,6 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Settings, Bell, Shield, Calendar, User, Save } from "lucide-react"
 
 export default async function DoctorSettings() {
-  const supabase = await createClient()
 
   return (
     <div className="p-6 space-y-6">

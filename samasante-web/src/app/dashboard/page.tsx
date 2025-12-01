@@ -1,18 +1,20 @@
 import { redirect } from "next/navigation"
-import { createClient} from "@prisma/client/"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Calendar, Users, Activity, Settings } from "lucide-react"
 
 export default async function DashboardPage() {
-  const supabase = await createClient()
-
-  const { data, error } = await supabase.auth.getUser()
-  if (error || !data?.user) {
-    redirect("/auth/login")
+  // Mock user data for demo purposes
+  const user = {
+    id: "mock-user-id",
+    email: "demo@samasante.sn",
+    user_metadata: {
+      user_type: "patient",
+      first_name: "Moussa",
+      last_name: "Ndiaye"
+    }
   }
 
-  const user = data.user
   const userType = user.user_metadata?.user_type || "patient"
   const firstName = user.user_metadata?.first_name || ""
   const lastName = user.user_metadata?.last_name || ""

@@ -6,7 +6,18 @@ import { Input } from "@/components/ui/input"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { AppointmentBookingModal } from "@/components/appointment-booking-modal"
-import { createClient } from "@/lib/supabase/client"
+import {
+  Search,
+  MapPin,
+  Star,
+  Phone,
+  Clock,
+  X,
+  Filter,
+  Stethoscope,
+  Calendar,
+  DollarSign
+} from "lucide-react"
 
 interface Doctor {
   id: string
@@ -40,8 +51,6 @@ export default function SearchDoctors() {
   })
   const [currentUser, setCurrentUser] = useState<any>(null)
 
-  const supabase = createClient()
-
   const specialties = [
     "Médecine Générale",
     "Cardiologie",
@@ -57,19 +66,11 @@ export default function SearchDoctors() {
 
   useEffect(() => {
     fetchDoctors()
-    getCurrentUser()
   }, [])
 
   useEffect(() => {
     filterDoctors()
   }, [doctors, searchTerm, selectedSpecialty, selectedCity])
-
-  const getCurrentUser = async () => {
-    const {
-      data: { user },
-    } = await supabase.auth.getUser()
-    setCurrentUser(user)
-  }
 
   const fetchDoctors = async () => {
     try {
@@ -108,12 +109,6 @@ export default function SearchDoctors() {
   }
 
   const handleBookAppointment = (doctor: Doctor) => {
-    if (!currentUser) {
-      // Redirect to login
-      window.location.href = "/auth/login"
-      return
-    }
-
     setBookingModal({
       isOpen: true,
       doctorId: doctor.id,
@@ -122,182 +117,218 @@ export default function SearchDoctors() {
     })
   }
 
+  const clearFilters = () => {
+    setSelectedSpecialty("")
+    setSelectedCity("")
+    setSearchTerm("")
+  }
+
   if (loading) {
     return (
-      <div className="pb-20">
-        <div className="bg-white border-b border-gray-200 p-4">
-          <h1 className="text-xl font-bold text-gray-900">Rechercher un médecin</h1>
-        </div>
-        <div className="p-4">
-          <div className="animate-pulse space-y-4">
-            {[1, 2, 3].map((i) => (
-              <div key={i} className="bg-gray-200 h-32 rounded-lg"></div>
-            ))}
-          </div>
+      <div className="p-8 space-y-6 bg-gradient-to-br from-emerald-50 to-teal-50 min-h-screen">
+        <div className="animate-pulse space-y-4">
+          <div className="h-12 bg-gray-200 rounded-lg w-1/3"></div>
+          <div className="h-10 bg-gray-200 rounded-lg"></div>
+          {[1, 2, 3].map((i) => (
+            <div key={i} className="bg-gray-200 h-32 rounded-lg"></div>
+          ))}
         </div>
       </div>
     )
   }
 
   return (
-    <div className="pb-20">
-      {/* Header */}
-      <div className="bg-white border-b border-gray-200 p-4 sticky top-0 z-10">
-        <h1 className="text-xl font-bold text-gray-900 mb-4">Rechercher un médecin</h1>
+    <div className="bg-gradient-to-br from-emerald-50 to-teal-50 min-h-screen">
+      <div className="p-8 space-y-8">
+        {/* Header */}
+        <div>
+          <h1 className="text-4xl font-bold bg-gradient-to-r from-emerald-600 to-teal-600 bg-clip-text text-transparent">
+            Rechercher un Médecin
+          </h1>
+          <p className="text-muted-foreground mt-2 text-lg">
+            Trouvez le praticien adapté à vos besoins
+          </p>
+        </div>
 
-        <div className="relative mb-4">
-          <Input
-            placeholder="Nom du médecin, spécialité..."
-            className="pr-12"
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-          />
-          <Button size="sm" className="absolute right-1 top-1">
-            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth={2}
-                d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"
+        {/* Search & Filters */}
+        <Card className="shadow-md border-none">
+          <CardContent className="p-6 space-y-6">
+            {/* Search Bar */}
+            <div className="relative">
+              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-5 w-5 text-gray-400" />
+              <Input
+                placeholder="Nom du médecin, spécialité..."
+                className="pl-11 pr-4 h-12 bg-gray-50 border-gray-200 text-lg"
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
               />
-            </svg>
-          </Button>
-        </div>
-
-        <div className="space-y-3">
-          <div>
-            <p className="text-sm font-medium text-gray-700 mb-2">Spécialités</p>
-            <div className="flex flex-wrap gap-2">
-              {specialties.slice(0, 4).map((specialty) => (
-                <Badge
-                  key={specialty}
-                  variant={selectedSpecialty === specialty ? "default" : "outline"}
-                  className="text-xs cursor-pointer"
-                  onClick={() => setSelectedSpecialty(selectedSpecialty === specialty ? "" : specialty)}
-                >
-                  {specialty}
-                </Badge>
-              ))}
             </div>
-          </div>
 
-          <div>
-            <p className="text-sm font-medium text-gray-700 mb-2">Localisation</p>
-            <div className="flex flex-wrap gap-2">
-              {locations.slice(0, 3).map((location) => (
-                <Badge
-                  key={location}
-                  variant={selectedCity === location ? "default" : "outline"}
-                  className="text-xs cursor-pointer"
-                  onClick={() => setSelectedCity(selectedCity === location ? "" : location)}
-                >
-                  {location}
-                </Badge>
-              ))}
-            </div>
-          </div>
-        </div>
-      </div>
-
-      {/* Results */}
-      <div className="p-4 space-y-4">
-        <div className="flex items-center justify-between">
-          <p className="text-sm text-gray-600">{filteredDoctors.length} médecins trouvés</p>
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => {
-              setSelectedSpecialty("")
-              setSelectedCity("")
-              setSearchTerm("")
-            }}
-          >
-            <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-            </svg>
-            Effacer filtres
-          </Button>
-        </div>
-
-        {filteredDoctors.map((doctor) => (
-          <Card key={doctor.id} className="hover:shadow-md transition-shadow">
-            <CardContent className="p-4">
-              <div className="flex items-start space-x-4">
-                <div className="w-16 h-16 bg-gradient-to-br from-cyan-100 to-blue-100 rounded-full flex items-center justify-center">
-                  <span className="text-lg font-semibold text-cyan-600">
-                    {doctor.profiles.first_name?.[0]}
-                    {doctor.profiles.last_name?.[0]}
-                  </span>
+            {/* Filters */}
+            <div className="space-y-4">
+              <div>
+                <div className="flex items-center mb-3">
+                  <Stethoscope className="h-4 w-4 mr-2 text-emerald-600" />
+                  <p className="text-sm font-bold text-gray-700 uppercase tracking-wider">Spécialités</p>
                 </div>
-
-                <div className="flex-1">
-                  <div className="flex items-start justify-between">
-                    <div>
-                      <h3 className="font-semibold text-gray-900">
-                        Dr. {doctor.profiles.first_name} {doctor.profiles.last_name}
-                      </h3>
-                      <p className="text-sm text-cyan-600 font-medium">{doctor.speciality}</p>
-                      <p className="text-xs text-gray-500 mt-1">📍 {doctor.profiles.city || "Dakar"}, Sénégal</p>
-                    </div>
-
-                    <div className="text-right">
-                      <div className="flex items-center space-x-1 mb-1">
-                        <span className="text-yellow-400">⭐</span>
-                        <span className="text-sm font-medium">4.8</span>
-                        <span className="text-xs text-gray-500">(124)</span>
-                      </div>
-                      <p className="text-sm font-semibold text-gray-900">
-                        {doctor.consultation_fee?.toLocaleString() || "15,000"} FCFA
-                      </p>
-                    </div>
-                  </div>
-
-                  <div className="mt-3 flex items-center justify-between">
-                    <div className="flex items-center space-x-4 text-xs text-gray-500">
-                      <span>🕐 Disponible aujourd'hui</span>
-                      <span>📞 {doctor.profiles.phone}</span>
-                    </div>
-
-                    <Button
-                      size="sm"
-                      className="bg-cyan-600 hover:bg-cyan-700"
-                      onClick={() => handleBookAppointment(doctor)}
+                <div className="flex flex-wrap gap-2">
+                  {specialties.map((specialty) => (
+                    <Badge
+                      key={specialty}
+                      variant={selectedSpecialty === specialty ? "default" : "outline"}
+                      className={`cursor-pointer transition-all ${selectedSpecialty === specialty
+                        ? "bg-emerald-600 text-white hover:bg-emerald-700"
+                        : "border-emerald-200 text-emerald-700 hover:bg-emerald-50"
+                        }`}
+                      onClick={() => setSelectedSpecialty(selectedSpecialty === specialty ? "" : specialty)}
                     >
-                      Prendre RDV
-                    </Button>
-                  </div>
+                      {specialty}
+                    </Badge>
+                  ))}
                 </div>
               </div>
-            </CardContent>
-          </Card>
-        ))}
 
-        {filteredDoctors.length === 0 && (
-          <div className="text-center py-12">
-            <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
-              <svg className="w-8 h-8 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth={2}
-                  d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"
-                />
-              </svg>
+              <div>
+                <div className="flex items-center mb-3">
+                  <MapPin className="h-4 w-4 mr-2 text-teal-600" />
+                  <p className="text-sm font-bold text-gray-700 uppercase tracking-wider">Localisation</p>
+                </div>
+                <div className="flex flex-wrap gap-2">
+                  {locations.map((location) => (
+                    <Badge
+                      key={location}
+                      variant={selectedCity === location ? "default" : "outline"}
+                      className={`cursor-pointer transition-all ${selectedCity === location
+                        ? "bg-teal-600 text-white hover:bg-teal-700"
+                        : "border-teal-200 text-teal-700 hover:bg-teal-50"
+                        }`}
+                      onClick={() => setSelectedCity(selectedCity === location ? "" : location)}
+                    >
+                      {location}
+                    </Badge>
+                  ))}
+                </div>
+              </div>
             </div>
-            <p className="text-gray-500">Aucun médecin trouvé</p>
-            <p className="text-sm text-gray-400 mt-1">Essayez de modifier vos critères de recherche</p>
-          </div>
-        )}
-      </div>
+          </CardContent>
+        </Card>
 
-      <AppointmentBookingModal
-        isOpen={bookingModal.isOpen}
-        onClose={() => setBookingModal({ ...bookingModal, isOpen: false })}
-        doctorId={bookingModal.doctorId}
-        doctorName={bookingModal.doctorName}
-        speciality={bookingModal.speciality}
-        patientId={currentUser?.id || ""}
-      />
+        {/* Results Header */}
+        <div className="flex items-center justify-between">
+          <p className="text-lg font-semibold text-gray-700">
+            <span className="text-emerald-600 font-bold">{filteredDoctors.length}</span> médecin{filteredDoctors.length > 1 ? 's' : ''} trouvé{filteredDoctors.length > 1 ? 's' : ''}
+          </p>
+          {(selectedSpecialty || selectedCity || searchTerm) && (
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={clearFilters}
+              className="border-gray-300 text-gray-700 hover:bg-gray-50"
+            >
+              <X className="w-4 h-4 mr-2" />
+              Effacer les filtres
+            </Button>
+          )}
+        </div>
+
+        {/* Results */}
+        <div className="space-y-4">
+          {filteredDoctors.map((doctor) => (
+            <Card key={doctor.id} className="group hover:shadow-lg transition-all duration-300 border-l-4 border-l-emerald-500">
+              <CardContent className="p-6">
+                <div className="flex flex-col md:flex-row items-start md:items-center gap-6">
+                  {/* Avatar */}
+                  <div className="w-20 h-20 bg-gradient-to-br from-emerald-500 to-teal-600 rounded-full flex items-center justify-center shadow-md group-hover:scale-105 transition-transform flex-shrink-0">
+                    <span className="text-2xl font-bold text-white">
+                      {doctor.profiles.first_name?.[0]}
+                      {doctor.profiles.last_name?.[0]}
+                    </span>
+                  </div>
+
+                  {/* Info */}
+                  <div className="flex-1 space-y-3">
+                    <div className="flex flex-col md:flex-row md:items-start md:justify-between gap-2">
+                      <div>
+                        <h3 className="text-xl font-bold text-gray-900">
+                          Dr. {doctor.profiles.first_name} {doctor.profiles.last_name}
+                        </h3>
+                        <p className="text-emerald-600 font-semibold">{doctor.speciality}</p>
+                        <div className="flex items-center text-sm text-gray-500 mt-1">
+                          <MapPin className="h-4 w-4 mr-1 text-teal-500" />
+                          {doctor.profiles.city || "Dakar"}, Sénégal
+                        </div>
+                      </div>
+
+                      <div className="text-left md:text-right">
+                        <div className="flex items-center space-x-1 mb-2">
+                          <Star className="h-4 w-4 fill-yellow-400 text-yellow-400" />
+                          <span className="text-sm font-bold">4.8</span>
+                          <span className="text-xs text-gray-500">(124 avis)</span>
+                        </div>
+                        <div className="flex items-center text-gray-900">
+                          <DollarSign className="h-4 w-4 text-emerald-600" />
+                          <span className="text-lg font-bold">
+                            {doctor.consultation_fee?.toLocaleString() || "15,000"} FCFA
+                          </span>
+                        </div>
+                      </div>
+                    </div>
+
+                    <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 pt-3 border-t border-gray-100">
+                      <div className="flex flex-wrap items-center gap-4 text-sm text-gray-600">
+                        <div className="flex items-center">
+                          <Clock className="h-4 w-4 mr-1.5 text-green-500" />
+                          <span>Disponible aujourd'hui</span>
+                        </div>
+                        <div className="flex items-center">
+                          <Phone className="h-4 w-4 mr-1.5 text-blue-500" />
+                          <span>{doctor.profiles.phone}</span>
+                        </div>
+                      </div>
+
+                      <Button
+                        className="bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-teal-700 text-white shadow-md"
+                        onClick={() => handleBookAppointment(doctor)}
+                      >
+                        <Calendar className="h-4 w-4 mr-2" />
+                        Prendre Rendez-vous
+                      </Button>
+                    </div>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          ))}
+
+          {filteredDoctors.length === 0 && (
+            <Card className="border-dashed border-2 border-gray-200 bg-transparent shadow-none">
+              <CardContent className="p-12 text-center">
+                <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                  <Search className="h-8 w-8 text-gray-400" />
+                </div>
+                <h3 className="text-lg font-medium text-gray-900">Aucun médecin trouvé</h3>
+                <p className="text-gray-500 mt-1">Essayez de modifier vos critères de recherche</p>
+                <Button
+                  variant="outline"
+                  className="mt-4 border-emerald-200 text-emerald-700 hover:bg-emerald-50"
+                  onClick={clearFilters}
+                >
+                  Réinitialiser les filtres
+                </Button>
+              </CardContent>
+            </Card>
+          )}
+        </div>
+
+        <AppointmentBookingModal
+          isOpen={bookingModal.isOpen}
+          onClose={() => setBookingModal({ ...bookingModal, isOpen: false })}
+          doctorId={bookingModal.doctorId}
+          doctorName={bookingModal.doctorName}
+          speciality={bookingModal.speciality}
+          patientId={currentUser?.id || ""}
+        />
+      </div>
     </div>
   )
 }

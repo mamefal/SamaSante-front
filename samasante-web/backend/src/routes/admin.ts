@@ -3,7 +3,9 @@ import { Hono } from 'hono'
 import { prisma } from '../lib/prisma.js'
 import { requireAuth } from '../middlewares/auth.js'
 
-export const admin = new Hono()
+import type { HonoEnv } from '../types/env.js'
+
+export const admin = new Hono<HonoEnv>()
 
 // ---------- Helpers date (locaux, sans UTC surprise)
 function ymdLocal(d: Date) {
@@ -61,7 +63,9 @@ admin.get('/overview', requireAuth(['ADMIN']), async (c) => {
   let lastAt: Date | null = null
 
   for (const a of appts) {
-    kpis[a.status]++
+    if (a.status in kpis) {
+      kpis[a.status as keyof KPIMap]++
+    }
     const dur = Math.max(0, Math.floor((+a.end - +a.start) / 60000))
     totalDuration += dur
     if (a.status === 'done' || a.status === 'booked') minutesBooked += dur
@@ -109,7 +113,7 @@ admin.get('/daily', requireAuth(['ADMIN']), async (c) => {
 
   const days: Record<string, {
     booked: number; done: number; cancelled: number; no_show: number;
-    minutesBooked: number; minutesDone: number; revenueEstimatedCFA?: number;
+    minutesBooked: number; minutesDone: number; revenueEstimatedCFA?: number | undefined;
   }> = {}
 
   // Seed tous les jours
@@ -126,7 +130,9 @@ admin.get('/daily', requireAuth(['ADMIN']), async (c) => {
     if (!days[key]) {
       days[key] = { booked: 0, done: 0, cancelled: 0, no_show: 0, minutesBooked: 0, minutesDone: 0, revenueEstimatedCFA: feeCFA ? 0 : undefined }
     }
-    days[key][a.status]++
+    if (a.status in days[key]) {
+      days[key][a.status as keyof typeof days[string]]++
+    }
     if (a.status === 'done' || a.status === 'booked') days[key].minutesBooked += dur
     if (a.status === 'done') {
       days[key].minutesDone += dur
@@ -167,7 +173,7 @@ admin.get('/top-specialties', requireAuth(['ADMIN']), async (c) => {
     cancelled: number
     no_show: number
     minutes: number
-    revenueEstimatedCFA?: number
+    revenueEstimatedCFA?: number | undefined
   }
   const map = new Map<string, Agg>()
 
@@ -176,7 +182,9 @@ admin.get('/top-specialties', requireAuth(['ADMIN']), async (c) => {
     if (!map.has(spec)) map.set(spec, { total: 0, done: 0, booked: 0, cancelled: 0, no_show: 0, minutes: 0, revenueEstimatedCFA: feeCFA ? 0 : undefined })
     const agg = map.get(spec)!
     agg.total++
-    agg[a.status] = (agg as any)[a.status] + 1
+    if (a.status in agg) {
+      (agg as any)[a.status]++
+    }
     const dur = Math.max(0, Math.floor((+a.end - +a.start) / 60000))
     agg.minutes += dur
     if (feeCFA && a.status === 'done') agg.revenueEstimatedCFA! += feeCFA
@@ -224,7 +232,7 @@ admin.get('/top-doctors', requireAuth(['ADMIN']), async (c) => {
     cancelled: number
     no_show: number
     minutes: number
-    revenueEstimatedCFA?: number
+    revenueEstimatedCFA?: number | undefined
   }
   const map = new Map<number, DocAgg>()
 
@@ -240,7 +248,9 @@ admin.get('/top-doctors', requireAuth(['ADMIN']), async (c) => {
     })
     const agg = map.get(a.doctorId)!
     agg.total++
-    ;(agg as any)[a.status] = (agg as any)[a.status] + 1
+    if (a.status in agg) {
+      (agg as any)[a.status]++
+    }
     const dur = Math.max(0, Math.floor((+a.end - +a.start) / 60000))
     agg.minutes += dur
     if (feeCFA && a.status === 'done') agg.revenueEstimatedCFA! += feeCFA

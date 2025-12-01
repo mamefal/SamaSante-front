@@ -7,7 +7,33 @@ import { requireAuth } from '../middlewares/auth.js'
 import { getDailySlots, isBookable } from '../lib/slots.js'
 
 
-export const appointments = new Hono()
+
+import type { HonoEnv } from '../types/env.js'
+
+export const appointments = new Hono<HonoEnv>()
+
+// --- 0) Lister tous les RDV (Super Admin) ---
+appointments.get('/',
+  requireAuth(['SUPER_ADMIN']),
+  async (c) => {
+    const list = await prisma.appointment.findMany({
+      take: 50,
+      orderBy: { start: 'desc' },
+      include: {
+        doctor: {
+          select: { firstName: true, lastName: true }
+        },
+        patient: {
+          select: { firstName: true, lastName: true }
+        },
+        site: {
+          select: { name: true }
+        }
+      }
+    })
+    return c.json(list)
+  }
+)
 
 // --- Règles métier paramétrables (.env) ---
 const MIN_BOOK_AHEAD_MIN = parseInt(process.env.MIN_BOOK_AHEAD_MIN ?? '60', 10)       // min avant prise/modif
@@ -121,7 +147,7 @@ appointments.get('/doctor/:id',
 appointments.get('/today',
   requireAuth(['DOCTOR', 'ADMIN']),
   async (c) => {
-    const user = c.get('user')
+    const user = c.get('user') as any
     const doctorId = c.req.query('doctorId') ? Number(c.req.query('doctorId')) : user.doctorId
     if (!doctorId) return c.text('doctorId requis', 400)
 
@@ -154,7 +180,7 @@ appointments.patch('/:id/reschedule',
   async (c) => {
     const id = Number(c.req.param('id'))
     const { start, end, durationMinutes, siteId } = c.req.valid('json')
-    const user = c.get('user')
+    const user = c.get('user') as any
 
     const appt = await prisma.appointment.findUnique({ where: { id } })
     if (!appt) return c.text('Not found', 404)
@@ -214,7 +240,7 @@ appointments.patch('/:id/cancel',
   requireAuth(['DOCTOR', 'PATIENT']),
   async (c) => {
     const id = Number(c.req.param('id'))
-    const user = c.get('user')
+    const user = c.get('user') as any
 
     const appt = await prisma.appointment.findUnique({ where: { id } })
     if (!appt) return c.text('Not found', 404)
@@ -246,7 +272,7 @@ appointments.patch('/:id/done',
   requireAuth(['DOCTOR']),
   async (c) => {
     const id = Number(c.req.param('id'))
-    const user = c.get('user')
+    const user = c.get('user') as any
 
     const appt = await prisma.appointment.findUnique({ where: { id } })
     if (!appt) return c.text('Not found', 404)
@@ -267,7 +293,7 @@ appointments.patch('/:id/no-show',
   requireAuth(['DOCTOR']),
   async (c) => {
     const id = Number(c.req.param('id'))
-    const user = c.get('user')
+    const user = c.get('user') as any
 
     const appt = await prisma.appointment.findUnique({ where: { id } })
     if (!appt) return c.text('Not found', 404)
@@ -306,7 +332,7 @@ appointments.get('/my',
 appointments.get('/doctor/:id/week',
   requireAuth(['ADMIN', 'DOCTOR']),
   async (c) => {
-    const user = c.get('user')
+    const user = c.get('user') as any
     const doctorId = Number(c.req.param('id'))
     if (Number.isNaN(doctorId)) return c.text('doctorId invalide', 400)
     if (user.role === 'DOCTOR' && user.doctorId !== doctorId) return c.text('Forbidden', 403)
@@ -343,9 +369,9 @@ appointments.get('/doctor/:id/week',
 // 10) KPIs /stats (semaine ou plage libre)
 // -------------------------
 appointments.get('/doctor/:id/stats',
-  requireAuth(['ADMIN','DOCTOR']),
+  requireAuth(['ADMIN', 'DOCTOR']),
   async (c) => {
-    const user = c.get('user')
+    const user = c.get('user') as any
     const doctorId = Number(c.req.param('id'))
     if (Number.isNaN(doctorId)) return c.text('doctorId invalide', 400)
     if (user.role === 'DOCTOR' && user.doctorId !== doctorId) return c.text('Forbidden', 403)
@@ -361,7 +387,7 @@ appointments.get('/doctor/:id/stats',
       orderBy: { start: 'asc' }
     })
 
-    const kpis: Record<'booked'|'done'|'cancelled'|'no_show', number> =
+    const kpis: Record<'booked' | 'done' | 'cancelled' | 'no_show', number> =
       { booked: 0, done: 0, cancelled: 0, no_show: 0 }
 
     let minutesBooked = 0
@@ -372,7 +398,9 @@ appointments.get('/doctor/:id/stats',
     let totalDuration = 0
 
     for (const a of appts) {
-      kpis[a.status]++
+      if (a.status in kpis) {
+        kpis[a.status as keyof typeof kpis]++
+      }
       const dur = Math.max(0, Math.floor((+a.end - +a.start) / 60000))
       totalDuration += dur
       if (a.status === 'done' || a.status === 'booked') minutesBooked += dur
@@ -413,9 +441,9 @@ appointments.get('/doctor/:id/stats',
 // 11) Timeseries journalière /stats/daily
 // -------------------------
 appointments.get('/doctor/:id/stats/daily',
-  requireAuth(['ADMIN','DOCTOR']),
+  requireAuth(['ADMIN', 'DOCTOR']),
   async (c) => {
-    const user = c.get('user')
+    const user = c.get('user') as any
     const doctorId = Number(c.req.param('id'))
     if (Number.isNaN(doctorId)) return c.text('doctorId invalide', 400)
     if (user.role === 'DOCTOR' && user.doctorId !== doctorId) return c.text('Forbidden', 403)
@@ -449,7 +477,9 @@ appointments.get('/doctor/:id/stats/daily',
       if (!days[k]) {
         days[k] = { booked: 0, done: 0, cancelled: 0, no_show: 0, minutesBooked: 0, minutesDone: 0 }
       }
-      days[k][a.status]++
+      if (a.status in days[k]) {
+        days[k][a.status as keyof typeof days[string]]++
+      }
       if (a.status === 'done' || a.status === 'booked') days[k].minutesBooked += dur
       if (a.status === 'done') days[k].minutesDone += dur
     }
@@ -472,106 +502,108 @@ appointments.get('/doctor/:id/stats/daily',
 // -------------------------
 // GET /api/appointments/doctor/:id/dashboard?date=YYYY-MM-DD&durationMinutes=20&feeCFA=25000
 appointments.get('/doctor/:id/dashboard',
-    requireAuth(['ADMIN','DOCTOR']),
-    async (c) => {
-      const user = c.get('user')
-      const doctorId = Number(c.req.param('id'))
-      if (Number.isNaN(doctorId)) return c.text('doctorId invalide', 400)
-      if (user.role === 'DOCTOR' && user.doctorId !== doctorId) return c.text('Forbidden', 403)
-  
-      const qDate = c.req.query('date') || ymdLocal(new Date())
-      const durationMinutes = c.req.query('durationMinutes') ? Number(c.req.query('durationMinutes')) : 20
-      const feeCFA = c.req.query('feeCFA') ? Number(c.req.query('feeCFA')) : undefined
-  
-      const from = startOfDay(qDate)
-      const to = endOfDay(qDate)
-  
-      // 1) RDV du jour
-      const items = await prisma.appointment.findMany({
-        where: { doctorId, start: { gte: from }, end: { lte: to } },
-        include: { patient: true },
-        orderBy: { start: 'asc' }
-      })
-  
-      // 2) KPIs du jour
-      const kpis: Record<'booked'|'done'|'cancelled'|'no_show', number> =
-        { booked: 0, done: 0, cancelled: 0, no_show: 0 }
-      let minutesBooked = 0
-      let minutesDone = 0
-      let totalDuration = 0
-      const patientIds = new Set<number>()
-      let firstAt: Date | null = null
-      let lastAt: Date | null = null
-  
-      for (const a of items) {
-        kpis[a.status]++
-        const dur = Math.max(0, Math.floor((+a.end - +a.start) / 60000))
-        totalDuration += dur
-        if (a.status === 'done' || a.status === 'booked') minutesBooked += dur
-        if (a.status === 'done') minutesDone += dur
-        if (!firstAt) firstAt = a.start
-        lastAt = a.end
-        patientIds.add(a.patientId)
+  requireAuth(['ADMIN', 'DOCTOR']),
+  async (c) => {
+    const user = c.get('user') as any
+    const doctorId = Number(c.req.param('id'))
+    if (Number.isNaN(doctorId)) return c.text('doctorId invalide', 400)
+    if (user.role === 'DOCTOR' && user.doctorId !== doctorId) return c.text('Forbidden', 403)
+
+    const qDate = c.req.query('date') || ymdLocal(new Date())
+    const durationMinutes = c.req.query('durationMinutes') ? Number(c.req.query('durationMinutes')) : 20
+    const feeCFA = c.req.query('feeCFA') ? Number(c.req.query('feeCFA')) : undefined
+
+    const from = startOfDay(qDate)
+    const to = endOfDay(qDate)
+
+    // 1) RDV du jour
+    const items = await prisma.appointment.findMany({
+      where: { doctorId, start: { gte: from }, end: { lte: to } },
+      include: { patient: true },
+      orderBy: { start: 'asc' }
+    })
+
+    // 2) KPIs du jour
+    const kpis: Record<'booked' | 'done' | 'cancelled' | 'no_show', number> =
+      { booked: 0, done: 0, cancelled: 0, no_show: 0 }
+    let minutesBooked = 0
+    let minutesDone = 0
+    let totalDuration = 0
+    const patientIds = new Set<number>()
+    let firstAt: Date | null = null
+    let lastAt: Date | null = null
+
+    for (const a of items) {
+      if (a.status in kpis) {
+        kpis[a.status as keyof typeof kpis]++
       }
-  
-      const total = items.length
-      const noShowRate = total ? Number(((kpis.no_show / total) * 100).toFixed(1)) : 0
-      const cancelRate = total ? Number(((kpis.cancelled / total) * 100).toFixed(1)) : 0
-      const avgApptMinutes = total ? Math.round(totalDuration / total) : 0
-      const revenueEstimatedCFA = feeCFA ? kpis.done * feeCFA : undefined
-  
-      // 3) Prochain RDV
-      const now = new Date()
-      let nextAppointment = null as null | {
-        id: number; start: Date; end: Date; patient: { id: number; firstName: string; lastName: string }
-      }
-      // si c’est la date du jour => prochain "booked" >= maintenant, sinon premier "booked" du jour
-      const isToday = qDate === ymdLocal(new Date())
-      const candidates = items.filter(a => a.status === 'booked')
-      const pickFrom = isToday ? candidates.filter(a => +a.start >= +now) : candidates
-      if (pickFrom.length) {
-        const n = pickFrom.sort((a,b) => +a.start - +b.start)[0]
-        nextAppointment = {
-          id: n.id,
-          start: n.start,
-          end: n.end,
-          patient: { id: n.patient.id, firstName: n.patient.firstName, lastName: n.patient.lastName }
-        }
-      }
-  
-      // 4) Créneaux libres du jour (pour affichage rapide)
-      const freeSlots = await getDailySlots({
-        doctorId,
-        date: ymdLocal(from),
-        durationMinutes
-      })
-      const freeSlotsMinutes = freeSlots.length * durationMinutes
-      const totalPossibleMinutes = minutesBooked + freeSlotsMinutes
-      const occupancyRate = totalPossibleMinutes
-        ? Number(((minutesBooked / totalPossibleMinutes) * 100).toFixed(1))
-        : 0
-  
-      return c.json({
-        doctorId,
-        date: ymdLocal(from),
-        summary: {
-          totalAppointments: total,
-          kpis,
-          minutesBooked,
-          minutesDone,
-          avgApptMinutes,
-          uniquePatients: patientIds.size,
-          noShowRate,
-          cancelRate,
-          firstAt,
-          lastAt,
-          revenueEstimatedCFA,
-          occupancyRate,      // % d’occupation estimé (booked / (booked + libres))
-          nextAppointment
-        },
-        items,                // liste des RDV du jour (avec patient)
-        freeSlots             // slots libres, ex. pour prise rapide
-      })
+      const dur = Math.max(0, Math.floor((+a.end - +a.start) / 60000))
+      totalDuration += dur
+      if (a.status === 'done' || a.status === 'booked') minutesBooked += dur
+      if (a.status === 'done') minutesDone += dur
+      if (!firstAt) firstAt = a.start
+      lastAt = a.end
+      patientIds.add(a.patientId)
     }
-  )
-  
+
+    const total = items.length
+    const noShowRate = total ? Number(((kpis.no_show / total) * 100).toFixed(1)) : 0
+    const cancelRate = total ? Number(((kpis.cancelled / total) * 100).toFixed(1)) : 0
+    const avgApptMinutes = total ? Math.round(totalDuration / total) : 0
+    const revenueEstimatedCFA = feeCFA ? kpis.done * feeCFA : undefined
+
+    // 3) Prochain RDV
+    const now = new Date()
+    let nextAppointment = null as null | {
+      id: number; start: Date; end: Date; patient: { id: number; firstName: string; lastName: string }
+    }
+    // si c’est la date du jour => prochain "booked" >= maintenant, sinon premier "booked" du jour
+    const isToday = qDate === ymdLocal(new Date())
+    const candidates = items.filter(a => a.status === 'booked')
+    const pickFrom = isToday ? candidates.filter(a => +a.start >= +now) : candidates
+    if (pickFrom.length) {
+      const n = pickFrom.sort((a, b) => +a.start - +b.start)[0]
+      nextAppointment = {
+        id: n.id,
+        start: n.start,
+        end: n.end,
+        patient: { id: n.patient.id, firstName: n.patient.firstName, lastName: n.patient.lastName }
+      }
+    }
+
+    // 4) Créneaux libres du jour (pour affichage rapide)
+    const freeSlots = await getDailySlots({
+      doctorId,
+      date: ymdLocal(from),
+      durationMinutes
+    })
+    const freeSlotsMinutes = freeSlots.length * durationMinutes
+    const totalPossibleMinutes = minutesBooked + freeSlotsMinutes
+    const occupancyRate = totalPossibleMinutes
+      ? Number(((minutesBooked / totalPossibleMinutes) * 100).toFixed(1))
+      : 0
+
+    return c.json({
+      doctorId,
+      date: ymdLocal(from),
+      summary: {
+        totalAppointments: total,
+        kpis,
+        minutesBooked,
+        minutesDone,
+        avgApptMinutes,
+        uniquePatients: patientIds.size,
+        noShowRate,
+        cancelRate,
+        firstAt,
+        lastAt,
+        revenueEstimatedCFA,
+        occupancyRate,      // % d’occupation estimé (booked / (booked + libres))
+        nextAppointment
+      },
+      items,                // liste des RDV du jour (avec patient)
+      freeSlots             // slots libres, ex. pour prise rapide
+    })
+  }
+)
+

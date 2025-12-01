@@ -3,28 +3,33 @@ generator client {
 }
 
 datasource db {
-  provider          = "postgresql"
-  url               = env("DATABASE_URL")
-  shadowDatabaseUrl = env("SHADOW_DATABASE_URL")
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
 }
 
 enum Role {
-  ADMIN
+  SUPER_ADMIN      // Admin plateforme (voit tout)
+  HOSPITAL_ADMIN   // Admin hôpital (gère son organisation)
   DOCTOR
   PATIENT
 }
 
 model User {
-  id        Int      @id @default(autoincrement())
-  email     String   @unique
-  password  String // hash
-  role      Role
-  doctor    Doctor?  @relation(fields: [doctorId], references: [id])
-  doctorId  Int?
-  patientId Int?     @unique
-  patient   Patient? @relation(fields: [patientId], references: [id])
+  id             Int           @id @default(autoincrement())
+  email          String        @unique
+  password       String        // hash
+  name           String?
+  phone          String?
+  role           Role
+  doctor         Doctor?       @relation(fields: [doctorId], references: [id])
+  doctorId       Int?
+  patientId      Int?          @unique
+  patient        Patient?      @relation(fields: [patientId], references: [id])
+  organizationId Int?
+  organization   Organization? @relation(fields: [organizationId], references: [id])
 
   createdAt DateTime @default(now())
+  notifications Notification[]
 }
 
 model Doctor {
@@ -39,9 +44,18 @@ model Doctor {
   kycScore       Int              @default(0)
   practiceSite   PracticeSite?    @relation(fields: [practiceSiteId], references: [id])
   practiceSiteId Int?
+  organizationId Int
+  organization   Organization     @relation(fields: [organizationId], references: [id])
+  departmentId   Int?
+  department     Department?      @relation(fields: [departmentId], references: [id])
   availabilities Availability[]
   appointments   Appointment[]
   documents      DoctorDocument[]
+  prescriptions  Prescription[]
+  labOrders      LabOrder[]
+  consultationNotes ConsultationNote[]
+  certificates   MedicalCertificate[]
+  referralLetters ReferralLetter[]
   createdAt      DateTime         @default(now())
   verifiedAt     DateTime?
   User           User[]
@@ -60,16 +74,24 @@ model PracticeSite {
 }
 
 model Patient {
-  id           Int           @id @default(autoincrement())
-  firstName    String
-  lastName     String
-  dob          DateTime
-  phone        String?
-  email        String?
-  medicalFile  MedicalFile?
-  appointments Appointment[]
-  createdAt    DateTime      @default(now())
-  User         User?
+  id             Int           @id @default(autoincrement())
+  firstName      String
+  lastName       String
+  dob            DateTime
+  phone          String?
+  email          String?
+  organizationId Int?
+  organization   Organization? @relation(fields: [organizationId], references: [id])
+  medicalFile    MedicalFile?
+  appointments   Appointment[]
+  prescriptions  Prescription[]
+  labOrders      LabOrder[]
+  consultationNotes ConsultationNote[]
+  certificates   MedicalCertificate[]
+  referralLetters ReferralLetter[]
+  documents      PatientDocument[]
+  createdAt      DateTime      @default(now())
+  User           User?
 }
 
 model MedicalFile {
@@ -104,6 +126,11 @@ model Appointment {
   end       DateTime
   status    String        @default("booked") // booked|done|cancelled|no_show
   source    String        @default("mobile") // mobile|web
+  
+  prescriptions     Prescription[]
+  labOrders         LabOrder[]
+  consultationNote  ConsultationNote?
+  
   createdAt DateTime      @default(now())
 }
 
@@ -116,4 +143,180 @@ model DoctorDocument {
   issuedBy String?
   issuedAt DateTime?
   verified Boolean   @default(false)
+}
+
+model Organization {
+  id        Int       @id @default(autoincrement())
+  name      String
+  slug      String    @unique // pour URL: hopital-dakar
+  type      String    // hopital|clinique|cabinet
+  region    String
+  city      String
+  address   String?
+  phone     String?
+  email     String?
+  logo      String?
+  signature String?   // Signature/tampon unique de l'établissement
+  isActive  Boolean   @default(true)
+  settings  Json?     // config spécifique
+
+  // Relations
+  users     User[]
+  doctors   Doctor[]
+  patients  Patient[]
+
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  
+  departments Department[]
+}
+
+model Department {
+  id          Int      @id @default(autoincrement())
+  name        String
+  description String?
+  headDoctorId Int?    // Optional head of department
+  
+  organizationId Int
+  organization   Organization @relation(fields: [organizationId], references: [id])
+  
+  doctors     Doctor[]
+  
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
+// Medical Features Models
+
+model Prescription {
+  id            Int                      @id @default(autoincrement())
+  patient       Patient                  @relation(fields: [patientId], references: [id])
+  patientId     Int
+  doctor        Doctor                   @relation(fields: [doctorId], references: [id])
+  doctorId      Int
+  appointment   Appointment?             @relation(fields: [appointmentId], references: [id])
+  appointmentId Int?
+  
+  medications   PrescriptionMedication[]
+  diagnosis     String
+  notes         String?
+  
+  createdAt     DateTime                 @default(now())
+  validUntil    DateTime?
+}
+
+model PrescriptionMedication {
+  id             Int          @id @default(autoincrement())
+  prescription   Prescription @relation(fields: [prescriptionId], references: [id], onDelete: Cascade)
+  prescriptionId Int
+  
+  medicationName String
+  dosage         String
+  frequency      String
+  duration       String
+  instructions   String?
+}
+
+model LabOrder {
+  id            Int           @id @default(autoincrement())
+  patient       Patient       @relation(fields: [patientId], references: [id])
+  patientId     Int
+  doctor        Doctor        @relation(fields: [doctorId], references: [id])
+  doctorId      Int
+  appointment   Appointment?  @relation(fields: [appointmentId], references: [id])
+  appointmentId Int?
+  
+  tests         LabTest[]
+  urgency       String        @default("normal") // normal|urgent|stat
+  status        String        @default("pending") // pending|completed|cancelled
+  results       String?
+  resultDate    DateTime?
+  
+  createdAt     DateTime      @default(now())
+}
+
+model LabTest {
+  id         Int      @id @default(autoincrement())
+  labOrder   LabOrder @relation(fields: [labOrderId], references: [id], onDelete: Cascade)
+  labOrderId Int
+  
+  testName   String
+  testCode   String?
+  category   String   // hematology|biochemistry|microbiology|etc
+}
+
+model ConsultationNote {
+  id            Int         @id @default(autoincrement())
+  appointment   Appointment @relation(fields: [appointmentId], references: [id])
+  appointmentId Int         @unique
+  doctor        Doctor      @relation(fields: [doctorId], references: [id])
+  doctorId      Int
+  patient       Patient     @relation(fields: [patientId], references: [id])
+  patientId     Int
+  
+  chiefComplaint String
+  symptoms       String?
+  examination    String?
+  diagnosis      String
+  treatment      String?
+  notes          String?
+  
+  vitalSigns     String?    // JSON string: {temperature, bloodPressure, heartRate, etc}
+  
+  createdAt      DateTime   @default(now())
+  updatedAt      DateTime   @updatedAt
+}
+
+model MedicalCertificate {
+  id            Int      @id @default(autoincrement())
+  patient       Patient  @relation(fields: [patientId], references: [id])
+  patientId     Int
+  doctor        Doctor   @relation(fields: [doctorId], references: [id])
+  doctorId      Int
+  
+  type          String   // sick_leave|fitness|medical_report
+  diagnosis     String?
+  startDate     DateTime
+  endDate       DateTime?
+  days          Int?
+  content       String
+  
+  createdAt     DateTime @default(now())
+}
+
+model ReferralLetter {
+  id              Int      @id @default(autoincrement())
+  patient         Patient  @relation(fields: [patientId], references: [id])
+  patientId       Int
+  doctor          Doctor   @relation(fields: [doctorId], references: [id])
+  doctorId        Int
+  specialistName  String
+  specialty       String
+  reason          String
+  urgency         String   @default("normal") // normal|urgent
+  clinicalSummary String?
+  investigations  String?
+  createdAt       DateTime @default(now())
+}
+
+model Notification {
+  id        Int      @id @default(autoincrement())
+  userId    Int
+  user      User     @relation(fields: [userId], references: [id])
+  title     String
+  message   String
+  type      String   @default("info") // info|warning|success|error
+  read      Boolean  @default(false)
+  createdAt DateTime @default(now())
+}
+
+model PatientDocument {
+  id        Int      @id @default(autoincrement())
+  patientId Int
+  patient   Patient  @relation(fields: [patientId], references: [id])
+  title     String
+  type      String   // biology|imaging|report|prescription|other
+  fileUrl   String
+  fileSize  String?
+  uploadedAt DateTime @default(now())
 }

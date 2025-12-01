@@ -1,11 +1,16 @@
-import { createHash } from 'crypto'
+import { compareSync, hashSync } from 'bcryptjs'
 import { SignJWT, jwtVerify, type JWTPayload } from 'jose'
 
 const secret = new TextEncoder().encode(process.env.JWT_SECRET ?? 'change-me-super-secret')
 
-/** Hash SHA-256 synchrone (même que le seed) */
+/** Hash password with bcrypt */
 export function hash(plain: string): string {
-  return createHash('sha256').update(plain).digest('hex')
+  return hashSync(plain, 10)
+}
+
+/** Compare password with hash */
+export function compare(plain: string, hashed: string): boolean {
+  return compareSync(plain, hashed)
 }
 
 /** Signe un JWT (HS256, exp 1 jour) */
@@ -17,8 +22,10 @@ export async function signJwt(payload: JWTPayload | Record<string, unknown>) {
     .sign(secret)
 }
 
+export type UserRole = "SUPER_ADMIN" | "HOSPITAL_ADMIN" | "DOCTOR" | "PATIENT" | "ADMIN"
+
 /** Vérifie un JWT et renvoie le payload typé */
 export async function verifyJwt(token: string) {
   const { payload } = await jwtVerify(token, secret)
-  return payload as { sub: number; role: 'ADMIN' | 'DOCTOR'; doctorId?: number | null }
+  return payload as unknown as { sub: number; role: UserRole; doctorId?: number | null }
 }

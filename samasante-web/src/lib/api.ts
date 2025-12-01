@@ -1,54 +1,97 @@
-// src/lib/api.ts
-import axios from "axios"
-import { toast } from "sonner"
-import { getToken, logout } from "./auth"
+/* eslint-disable @typescript-eslint/no-explicit-any */
+import axios from 'axios'
 
-const baseURL = process.env.NEXT_PUBLIC_API_BASE || "http://localhost:3000"
+const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000/api'
 
-export const api = axios.create({
-  baseURL,
-  withCredentials: false,
+// Create axios instance with optimized settings
+const axiosInstance = axios.create({
+  baseURL: API_URL,
+  timeout: 10000, // 10 seconds timeout
+  headers: {
+    'Content-Type': 'application/json',
+  },
 })
 
-// Ajoute automatiquement le Bearer token
-api.interceptors.request.use((config) => {
-  const token = typeof window !== "undefined" ? getToken() : null
-  if (token) {
-    config.headers = config.headers ?? {}
-    config.headers.Authorization = `Bearer ${token}`
-  }
-  if (!config.headers?.["Content-Type"]) {
-    config.headers = config.headers ?? {}
-    config.headers["Content-Type"] = "application/json"
-  }
-  return config
-})
-
-// Gestion centralisée des erreurs + 401 -> logout
-api.interceptors.response.use(
-  (res) => res,
+// Request interceptor for adding auth token
+axiosInstance.interceptors.request.use(
+  (config) => {
+    const token = localStorage.getItem('amina:token')
+    if (token) {
+      config.headers.Authorization = `Bearer ${token}`
+    }
+    return config
+  },
   (error) => {
-    const status = error?.response?.status
-    const data = error?.response?.data
-    const msg =
-      (typeof data === "string" && data) ||
-      data?.message ||
-      data?.error ||
-      error.message ||
-      "Une erreur est survenue"
+    return Promise.reject(error)
+  }
+)
 
-    if (status === 401) {
-      toast.error("Session expirée — veuillez vous reconnecter.")
-      if (typeof window !== "undefined") {
-        logout()
-        window.location.href = "/auth/login"
+// Response interceptor for error handling
+axiosInstance.interceptors.response.use(
+  (response) => response,
+  (error) => {
+    // AUTHENTICATION DISABLED FOR DEVELOPMENT
+    // Uncomment to re-enable automatic redirect to login on 401
+    if (error.response?.status === 401) {
+      // Dispatch custom event for client-side redirect
+      if (typeof window !== 'undefined') {
+        window.dispatchEvent(new Event('auth:unauthorized'))
       }
-    } else {
-      toast.error(msg)
     }
     return Promise.reject(error)
   }
 )
 
-// Optionnel : default export si tu préfères `import api from "@/lib/api"`
-export default api
+// Simple in-memory cache
+const cache = new Map<string, { data: any; timestamp: number }>()
+const CACHE_DURATION = 30000 // 30 seconds
+
+export const api = {
+  get: async (url: string, useCache = true) => {
+    // Check cache first
+    if (useCache && cache.has(url)) {
+      const cached = cache.get(url)!
+      if (Date.now() - cached.timestamp < CACHE_DURATION) {
+        return cached.data
+      }
+    }
+
+    const response = await axiosInstance.get(url)
+
+    // Store in cache
+    if (useCache) {
+      cache.set(url, { data: response, timestamp: Date.now() })
+    }
+
+    return response
+  },
+
+  post: async (url: string, data: any) => {
+    // Clear related cache entries on POST
+    cache.clear()
+    return axiosInstance.post(url, data)
+  },
+
+  put: async (url: string, data: any) => {
+    // Clear related cache entries on PUT
+    cache.clear()
+    return axiosInstance.put(url, data)
+  },
+
+  patch: async (url: string, data?: any) => {
+    // Clear related cache entries on PATCH
+    cache.clear()
+    return axiosInstance.patch(url, data)
+  },
+
+  delete: async (url: string) => {
+    // Clear related cache entries on DELETE
+    cache.clear()
+    return axiosInstance.delete(url)
+  },
+
+  // Clear cache manually
+  clearCache: () => {
+    cache.clear()
+  }
+}

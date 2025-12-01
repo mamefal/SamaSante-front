@@ -4,7 +4,9 @@ import { zValidator } from '@hono/zod-validator'
 import { prisma } from '../lib/prisma'
 import { requireAuth } from '../middlewares/auth'
 
-export const availability = new Hono()
+import type { HonoEnv } from '../types/env.js'
+
+export const availability = new Hono<HonoEnv>()
 
 const AvailabilitySchema = z.object({
   ruleJson: z.string(),

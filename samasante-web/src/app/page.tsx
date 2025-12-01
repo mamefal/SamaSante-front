@@ -1,253 +1,195 @@
+"use client"
+
 import { Button } from "@/components/ui/button"
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
-import { Input } from "@/components/ui/input"
-import { Badge } from "@/components/ui/badge"
-import { Search, MapPin, Calendar, Users, Shield, Clock } from "lucide-react"
 import Link from "next/link"
+import { ArrowRight, Shield, Clock, Heart, Sparkles } from "lucide-react"
+import { useState } from "react"
 
 export default function HomePage() {
+  const [isMenuOpen, setIsMenuOpen] = useState(false)
+
   return (
-    <div className="min-h-screen bg-background">
-      {/* Header */}
-      <header className="border-b border-border bg-card/50 backdrop-blur-sm sticky top-0 z-50">
-        <div className="container mx-auto px-4 py-4">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center space-x-2">
-              <div className="w-8 h-8 bg-primary rounded-lg flex items-center justify-center">
-                <span className="text-primary-foreground font-bold text-sm">S</span>
+    <div className="min-h-screen bg-white dark:bg-black">
+      {/* Navigation - Apple Style */}
+      <nav className="fixed top-0 w-full bg-white/80 dark:bg-black/80 backdrop-blur-xl z-50 border-b border-gray-200/50 dark:border-gray-800/50">
+        <div className="max-w-7xl mx-auto px-6">
+          <div className="flex items-center justify-between h-14">
+            {/* Logo */}
+            <Link href="/" className="flex items-center space-x-2">
+              <div className="w-7 h-7 bg-gradient-to-br from-blue-500 to-cyan-500 rounded-lg flex items-center justify-center">
+                <span className="text-white font-bold text-sm">S</span>
               </div>
-              <span className="text-xl font-bold text-foreground">SAMASANTE</span>
-            </div>
-            <nav className="hidden md:flex items-center space-x-6">
-              <a href="#" className="text-muted-foreground hover:text-foreground transition-colors">
-                Médecins
-              </a>
-              <a href="#" className="text-muted-foreground hover:text-foreground transition-colors">
-                Spécialités
-              </a>
-              <a href="#" className="text-muted-foreground hover:text-foreground transition-colors">
-                À propos
-              </a>
-              <Button variant="outline" size="sm" asChild>
-                <Link href="/auth/login">Connexion</Link>
-              </Button>
-              <Button size="sm" asChild>
-                <Link href="/auth/signup">S'inscrire</Link>
-              </Button>
-            </nav>
-          </div>
-        </div>
-      </header>
+              <span className="text-lg font-semibold">AMINA</span>
+            </Link>
 
-      {/* Hero Section */}
-      <section className="py-20 px-4">
-        <div className="container mx-auto text-center">
-          <h1 className="text-4xl md:text-6xl font-bold text-foreground mb-6 text-balance">
-            Votre santé, notre priorité
+            {/* Desktop Menu */}
+            <div className="hidden md:flex items-center space-x-8">
+              <a href="#features" className="text-sm text-gray-600 dark:text-gray-300 hover:text-black dark:hover:text-white transition-colors">
+                Fonctionnalités
+              </a>
+              <a href="#benefits" className="text-sm text-gray-600 dark:text-gray-300 hover:text-black dark:hover:text-white transition-colors">
+                Avantages
+              </a>
+              <Link href="/auth/login" className="text-sm text-gray-600 dark:text-gray-300 hover:text-black dark:hover:text-white transition-colors">
+                Connexion
+              </Link>
+              <Link href="/auth/signup">
+                <Button size="sm" className="bg-blue-500 hover:bg-blue-600 text-white rounded-full px-4">
+                  Commencer
+                </Button>
+              </Link>
+            </div>
+
+            {/* Mobile Menu Button */}
+            <button
+              className="md:hidden p-2"
+              onClick={() => setIsMenuOpen(!isMenuOpen)}
+            >
+              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
+              </svg>
+            </button>
+          </div>
+
+          {/* Mobile Menu */}
+          {isMenuOpen && (
+            <div className="md:hidden py-4 space-y-3 border-t border-gray-200 dark:border-gray-800">
+              <a href="#features" className="block text-sm text-gray-600 dark:text-gray-300">Fonctionnalités</a>
+              <a href="#benefits" className="block text-sm text-gray-600 dark:text-gray-300">Avantages</a>
+              <Link href="/auth/login" className="block text-sm text-gray-600 dark:text-gray-300">Connexion</Link>
+              <Link href="/auth/signup" className="block">
+                <Button size="sm" className="w-full bg-blue-500 hover:bg-blue-600 text-white rounded-full">
+                  Commencer
+                </Button>
+              </Link>
+            </div>
+          )}
+        </div>
+      </nav>
+
+      {/* Hero Section - Apple Style */}
+      <section className="pt-32 pb-20 px-6">
+        <div className="max-w-4xl mx-auto text-center">
+          <h1 className="text-6xl md:text-8xl font-semibold tracking-tight mb-6 bg-gradient-to-b from-black to-gray-600 dark:from-white dark:to-gray-400 bg-clip-text text-transparent">
+            La santé n'est pas un luxe.
+            <br />
+            C'est un droit.
           </h1>
-          <p className="text-xl text-muted-foreground mb-8 max-w-2xl mx-auto text-pretty">
-            Prenez rendez-vous avec les meilleurs médecins du Sénégal en quelques clics. Plateforme moderne, sécurisée
-            et adaptée à vos besoins.
+          <p className="text-xl md:text-2xl text-gray-600 dark:text-gray-400 mb-12 max-w-2xl mx-auto font-light">
+            Prenez rendez-vous avec les meilleurs médecins du Sénégal en quelques secondes.
           </p>
+          <div className="flex flex-col sm:flex-row gap-4 justify-center">
+            <Link href="/auth/signup">
+              <Button size="lg" className="bg-blue-500 hover:bg-blue-600 text-white rounded-full px-8 text-base h-12">
+                Commencer gratuitement
+              </Button>
+            </Link>
+            <Link href="#stats">
+              <Button size="lg" variant="outline" className="rounded-full px-8 text-base h-12 border-gray-300 dark:border-gray-700">
+                En savoir plus
+              </Button>
+            </Link>
+          </div>
+        </div>
+      </section>
 
-          {/* Search Bar */}
-          <div className="max-w-4xl mx-auto mb-12">
-            <Card className="p-6">
-              <div className="grid md:grid-cols-4 gap-4">
-                <div className="relative">
-                  <Search className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
-                  <Input placeholder="Spécialité ou médecin" className="pl-10" />
-                </div>
-                <div className="relative">
-                  <MapPin className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
-                  <Input placeholder="Ville ou région" className="pl-10" />
-                </div>
-                <div className="relative">
-                  <Calendar className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
-                  <Input placeholder="Date souhaitée" className="pl-10" />
-                </div>
-                <Button className="w-full">Rechercher</Button>
+      {/* Large Image Section */}
+      <section className="px-6 pb-20">
+        <div className="max-w-6xl mx-auto">
+          <div className="relative rounded-3xl overflow-hidden bg-gradient-to-br from-blue-50 to-cyan-50 dark:from-blue-950/30 dark:to-cyan-950/30 h-[500px] flex items-center justify-center border border-gray-200 dark:border-gray-800">
+            <div className="text-center">
+              <div className="w-24 h-24 bg-gradient-to-br from-blue-500 to-cyan-500 rounded-3xl flex items-center justify-center mx-auto mb-6 shadow-2xl">
+                <Heart className="w-12 h-12 text-white" />
               </div>
-            </Card>
-          </div>
-
-          {/* Stats */}
-          <div className="grid md:grid-cols-3 gap-8 max-w-3xl mx-auto">
-            <div className="text-center">
-              <div className="text-3xl font-bold text-primary mb-2">500+</div>
-              <div className="text-muted-foreground">Médecins vérifiés</div>
-            </div>
-            <div className="text-center">
-              <div className="text-3xl font-bold text-primary mb-2">50+</div>
-              <div className="text-muted-foreground">Spécialités médicales</div>
-            </div>
-            <div className="text-center">
-              <div className="text-3xl font-bold text-primary mb-2">14</div>
-              <div className="text-muted-foreground">Régions couvertes</div>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      {/* Features Section */}
-      <section className="py-20 px-4 bg-muted/30">
-        <div className="container mx-auto">
-          <div className="text-center mb-16">
-            <h2 className="text-3xl md:text-4xl font-bold text-foreground mb-4">Pourquoi choisir SAMASANTE ?</h2>
-            <p className="text-xl text-muted-foreground max-w-2xl mx-auto">
-              Une plateforme conçue pour simplifier l'accès aux soins de santé au Sénégal
-            </p>
-          </div>
-
-          <div className="grid md:grid-cols-3 gap-8">
-            <Card className="text-center p-6">
-              <CardHeader>
-                <div className="w-12 h-12 bg-primary/10 rounded-lg flex items-center justify-center mx-auto mb-4">
-                  <Shield className="h-6 w-6 text-primary" />
-                </div>
-                <CardTitle>Médecins Vérifiés</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <CardDescription>
-                  Tous nos médecins sont vérifiés par l'Ordre des Médecins du Sénégal. Votre sécurité est notre
-                  priorité.
-                </CardDescription>
-              </CardContent>
-            </Card>
-
-            <Card className="text-center p-6">
-              <CardHeader>
-                <div className="w-12 h-12 bg-primary/10 rounded-lg flex items-center justify-center mx-auto mb-4">
-                  <Clock className="h-6 w-6 text-primary" />
-                </div>
-                <CardTitle>Rendez-vous Rapide</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <CardDescription>
-                  Prenez rendez-vous en moins de 2 minutes. Disponibilités en temps réel et confirmation instantanée.
-                </CardDescription>
-              </CardContent>
-            </Card>
-
-            <Card className="text-center p-6">
-              <CardHeader>
-                <div className="w-12 h-12 bg-primary/10 rounded-lg flex items-center justify-center mx-auto mb-4">
-                  <Users className="h-6 w-6 text-primary" />
-                </div>
-                <CardTitle>Suivi Personnalisé</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <CardDescription>
-                  Dossier médical numérique sécurisé, rappels automatiques et suivi de vos consultations.
-                </CardDescription>
-              </CardContent>
-            </Card>
-          </div>
-        </div>
-      </section>
-
-      {/* Popular Specialties */}
-      <section className="py-20 px-4">
-        <div className="container mx-auto">
-          <div className="text-center mb-16">
-            <h2 className="text-3xl md:text-4xl font-bold text-foreground mb-4">Spécialités Populaires</h2>
-            <p className="text-xl text-muted-foreground">Trouvez rapidement le spécialiste qu'il vous faut</p>
-          </div>
-
-          <div className="grid md:grid-cols-4 gap-4">
-            {[
-              "Médecine Générale",
-              "Pédiatrie",
-              "Gynécologie",
-              "Cardiologie",
-              "Dermatologie",
-              "Ophtalmologie",
-              "Dentaire",
-              "Psychiatrie",
-            ].map((specialty) => (
-              <Card key={specialty} className="p-4 hover:shadow-md transition-shadow cursor-pointer">
-                <CardContent className="text-center p-2">
-                  <Badge variant="secondary" className="mb-2">
-                    {specialty}
-                  </Badge>
-                  <p className="text-sm text-muted-foreground">Disponible</p>
-                </CardContent>
-              </Card>
-            ))}
-          </div>
-        </div>
-      </section>
-
-      {/* Footer */}
-      <footer className="bg-card border-t border-border py-12 px-4">
-        <div className="container mx-auto">
-          <div className="grid md:grid-cols-4 gap-8">
-            <div>
-              <div className="flex items-center space-x-2 mb-4">
-                <div className="w-8 h-8 bg-primary rounded-lg flex items-center justify-center">
-                  <span className="text-primary-foreground font-bold text-sm">S</span>
-                </div>
-                <span className="text-xl font-bold text-foreground">SAMASANTE</span>
-              </div>
-              <p className="text-muted-foreground text-sm">
-                Plateforme de santé numérique du Sénégal. Votre santé, notre priorité.
+              <h3 className="text-3xl font-semibold mb-3">Interface Intuitive</h3>
+              <p className="text-gray-600 dark:text-gray-400 max-w-md mx-auto">
+                Conçue pour être simple et élégante
               </p>
             </div>
+          </div>
+        </div>
+      </section>
 
+      {/* Stats Section */}
+      <section id="stats" className="py-20 px-6">
+        <div className="max-w-6xl mx-auto">
+          <div className="grid md:grid-cols-3 gap-12 text-center">
             <div>
-              <h3 className="font-semibold text-foreground mb-4">Patients</h3>
-              <ul className="space-y-2 text-sm text-muted-foreground">
-                <li>
-                  <a href="#" className="hover:text-foreground transition-colors">
-                    Prendre RDV
-                  </a>
-                </li>
-                <li>
-                  <a href="#" className="hover:text-foreground transition-colors">
-                    Mon dossier
-                  </a>
-                </li>
-                <li>
-                  <a href="#" className="hover:text-foreground transition-colors">
-                    Mes rendez-vous
-                  </a>
-                </li>
+              <div className="text-6xl font-semibold mb-2 bg-gradient-to-r from-blue-500 to-cyan-500 bg-clip-text text-transparent">
+                500+
+              </div>
+              <p className="text-gray-600 dark:text-gray-400">Médecins vérifiés</p>
+            </div>
+            <div>
+              <div className="text-6xl font-semibold mb-2 bg-gradient-to-r from-blue-500 to-cyan-500 bg-clip-text text-transparent">
+                50+
+              </div>
+              <p className="text-gray-600 dark:text-gray-400">Spécialités médicales</p>
+            </div>
+            <div>
+              <div className="text-6xl font-semibold mb-2 bg-gradient-to-r from-blue-500 to-cyan-500 bg-clip-text text-transparent">
+                14
+              </div>
+              <p className="text-gray-600 dark:text-gray-400">Régions du Sénégal</p>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* CTA Section - Apple Style */}
+      <section className="py-32 px-6 bg-black dark:bg-white text-white dark:text-black">
+        <div className="max-w-4xl mx-auto text-center">
+          <h2 className="text-5xl md:text-7xl font-semibold mb-6 tracking-tight">
+            Prêt à commencer ?
+          </h2>
+          <p className="text-xl md:text-2xl mb-12 opacity-80 font-light">
+            Rejoignez des milliers de Sénégalais qui prennent soin de leur santé avec AMINA
+          </p>
+          <Link href="/auth/signup">
+            <Button size="lg" className="bg-white dark:bg-black text-black dark:text-white hover:bg-gray-100 dark:hover:bg-gray-900 rounded-full px-8 text-base h-12">
+              Créer un compte gratuit
+              <ArrowRight className="ml-2 h-5 w-5" />
+            </Button>
+          </Link>
+        </div>
+      </section>
+
+      {/* Footer - Apple Style */}
+      <footer className="py-12 px-6 border-t border-gray-200 dark:border-gray-800">
+        <div className="max-w-6xl mx-auto">
+          <div className="grid md:grid-cols-4 gap-8 mb-12">
+            <div>
+              <h4 className="font-semibold mb-4">Patients</h4>
+              <ul className="space-y-2 text-sm text-gray-600 dark:text-gray-400">
+                <li><Link href="/auth/signup" className="hover:text-black dark:hover:text-white transition-colors">Créer un compte</Link></li>
+                <li><Link href="/auth/login" className="hover:text-black dark:hover:text-white transition-colors">Se connecter</Link></li>
               </ul>
             </div>
-
             <div>
-              <h3 className="font-semibold text-foreground mb-4">Médecins</h3>
-              <ul className="space-y-2 text-sm text-muted-foreground">
-                <li>
-                  <a href="#" className="hover:text-foreground transition-colors">
-                    Rejoindre SAMASANTE
-                  </a>
-                </li>
-                <li>
-                  <a href="#" className="hover:text-foreground transition-colors">
-                    Espace médecin
-                  </a>
-                </li>
-                <li>
-                  <a href="#" className="hover:text-foreground transition-colors">
-                    Support
-                  </a>
-                </li>
+              <h4 className="font-semibold mb-4">Médecins</h4>
+              <ul className="space-y-2 text-sm text-gray-600 dark:text-gray-400">
+                <li><Link href="/auth/signup" className="hover:text-black dark:hover:text-white transition-colors">Rejoindre</Link></li>
+                <li><Link href="/auth/login" className="hover:text-black dark:hover:text-white transition-colors">Espace médecin</Link></li>
               </ul>
             </div>
-
             <div>
-              <h3 className="font-semibold text-foreground mb-4">Contact</h3>
-              <ul className="space-y-2 text-sm text-muted-foreground">
+              <h4 className="font-semibold mb-4">Hôpitaux</h4>
+              <ul className="space-y-2 text-sm text-gray-600 dark:text-gray-400">
+                <li><Link href="/auth/signup" className="hover:text-black dark:hover:text-white transition-colors">Partenariat</Link></li>
+                <li><Link href="/auth/login" className="hover:text-black dark:hover:text-white transition-colors">Espace hôpital</Link></li>
+              </ul>
+            </div>
+            <div>
+              <h4 className="font-semibold mb-4">Contact</h4>
+              <ul className="space-y-2 text-sm text-gray-600 dark:text-gray-400">
                 <li>+221 33 XXX XX XX</li>
                 <li>contact@samasante.sn</li>
                 <li>Dakar, Sénégal</li>
               </ul>
             </div>
           </div>
-
-          <div className="border-t border-border mt-8 pt-8 text-center text-sm text-muted-foreground">
-            <p>&copy; 2025 SAMASANTE. Tous droits réservés.</p>
+          <div className="pt-8 border-t border-gray-200 dark:border-gray-800 text-center text-sm text-gray-600 dark:text-gray-400">
+            <p>© 2025 AMINA. Tous droits réservés.</p>
           </div>
         </div>
       </footer>
