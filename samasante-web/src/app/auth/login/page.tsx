@@ -21,23 +21,48 @@ export default function LoginPage() {
     setLoading(true)
 
     try {
+      console.log('Attempting login with:', email)
       const res = await api.post("/auth/login", { email, password })
+      console.log('Login response:', res.data)
+
+      // Determine redirect URL based on role
+      const role = res.data.user.role
+      console.log('User role:', role)
+
+      let redirectUrl = "/patient"
+      if (role === "DOCTOR") {
+        redirectUrl = "/doctor"
+      } else if (role === "HOSPITAL_ADMIN") {
+        redirectUrl = "/hospital/dashboard"
+      } else if (role === "SUPER_ADMIN") {
+        redirectUrl = "/super-admin"
+      }
+
+      // Save token and user data BEFORE redirect
       setToken(res.data.token, res.data.user)
       toast.success("Connexion réussie")
 
-      // Redirect directly to the appropriate dashboard
-      const role = res.data.user.role
-      if (role === "DOCTOR") {
-        router.push("/doctor")
-      } else if (role === "HOSPITAL_ADMIN") {
-        router.push("/hospital/dashboard")
-      } else if (role === "SUPER_ADMIN") {
-        router.push("/super-admin")
+      console.log('Redirecting to:', redirectUrl)
+      // Force immediate redirect
+      setTimeout(() => {
+        window.location.href = redirectUrl
+      }, 100)
+    } catch (error: any) {
+      console.error('Login error:', error)
+
+      if (error.response) {
+        // Server responded with error
+        console.error('Error response:', error.response.data)
+        toast.error(error.response.data.message || "Identifiants invalides")
+      } else if (error.request) {
+        // Request made but no response
+        console.error('No response received:', error.request)
+        toast.error("Impossible de contacter le serveur")
       } else {
-        router.push("/patient")
+        // Something else happened
+        console.error('Error message:', error.message)
+        toast.error("Une erreur est survenue")
       }
-    } catch (e) {
-      // toast d'erreur déjà géré par l'interceptor axios
     } finally {
       setLoading(false)
     }
