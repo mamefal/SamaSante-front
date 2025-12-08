@@ -563,11 +563,13 @@ appointments.get('/doctor/:id/dashboard',
     const pickFrom = isToday ? candidates.filter(a => +a.start >= +now) : candidates
     if (pickFrom.length) {
       const n = pickFrom.sort((a, b) => +a.start - +b.start)[0]
-      nextAppointment = {
-        id: n.id,
-        start: n.start,
-        end: n.end,
-        patient: { id: n.patient.id, firstName: n.patient.firstName, lastName: n.patient.lastName }
+      if (n) {
+        nextAppointment = {
+          id: n.id,
+          start: n.start,
+          end: n.end,
+          patient: { id: n.patient.id, firstName: n.patient.firstName, lastName: n.patient.lastName }
+        }
       }
     }
 

@@ -1,7 +1,11 @@
 import { compareSync, hashSync } from 'bcryptjs'
 import { SignJWT, jwtVerify, type JWTPayload } from 'jose'
 
-const secret = new TextEncoder().encode(process.env.JWT_SECRET ?? 'change-me-super-secret')
+if (!process.env.JWT_SECRET) {
+  throw new Error('JWT_SECRET environment variable is required')
+}
+
+const secret = new TextEncoder().encode(process.env.JWT_SECRET)
 
 /** Hash password with bcrypt */
 export function hash(plain: string): string {
@@ -14,11 +18,11 @@ export function compare(plain: string, hashed: string): boolean {
 }
 
 /** Signe un JWT (HS256, exp 1 jour) */
-export async function signJwt(payload: JWTPayload | Record<string, unknown>) {
+export async function signJwt(payload: JWTPayload | Record<string, unknown>, expiresIn: string = '1d') {
   return await new SignJWT({ ...payload })
     .setProtectedHeader({ alg: 'HS256' })
     .setIssuedAt()
-    .setExpirationTime('1d')
+    .setExpirationTime(expiresIn)
     .sign(secret)
 }
 
@@ -29,3 +33,9 @@ export async function verifyJwt(token: string) {
   const { payload } = await jwtVerify(token, secret)
   return payload as unknown as { sub: number; role: UserRole; doctorId?: number | null }
 }
+
+// Aliases for compatibility
+export const hashPassword = hash
+export const comparePassword = compare
+export const signJWT = signJwt
+export const verifyJWT = verifyJwt

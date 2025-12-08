@@ -28,6 +28,7 @@ pids/
 # --- Environment files ---
 .env
 .env.*.local
+!.env.example
 
 # --- macOS ---
 .DS_Store

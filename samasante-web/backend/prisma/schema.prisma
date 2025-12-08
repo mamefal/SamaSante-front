@@ -30,6 +30,15 @@ model User {
 
   createdAt DateTime @default(now())
   notifications Notification[]
+  refreshTokens RefreshToken[]
+  auditLogs AuditLog[]
+  twoFactorSecret TwoFactorSecret?
+  modificationHistory ModificationHistory[]
+  documentSignatures DocumentSignature[]
+
+  @@index([email])
+  @@index([role])
+  @@index([organizationId])
 }
 
 model Doctor {
@@ -59,6 +68,11 @@ model Doctor {
   createdAt      DateTime         @default(now())
   verifiedAt     DateTime?
   User           User[]
+
+  @@index([organizationId])
+  @@index([specialty])
+  @@index([status])
+  @@index([ordreNumber])
 }
 
 model PracticeSite {
@@ -132,6 +146,11 @@ model Appointment {
   consultationNote  ConsultationNote?
   
   createdAt DateTime      @default(now())
+
+  @@index([doctorId, start])
+  @@index([patientId, start])
+  @@index([status])
+  @@index([start])
 }
 
 model DoctorDocument {
@@ -319,4 +338,87 @@ model PatientDocument {
   fileUrl   String
   fileSize  String?
   uploadedAt DateTime @default(now())
+}
+
+// Security Models
+
+model RefreshToken {
+  id        Int      @id @default(autoincrement())
+  token     String   @unique
+  userId    Int
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+  revokedAt DateTime?
+  replacedBy String? // Token that replaced this one
+  
+  @@index([userId])
+  @@index([token])
+  @@index([expiresAt])
+}
+
+model AuditLog {
+  id          Int      @id @default(autoincrement())
+  userId      Int?
+  user        User?    @relation(fields: [userId], references: [id])
+  action      String   // CREATE|UPDATE|DELETE|LOGIN|LOGOUT|ACCESS
+  entity      String   // User|Patient|Doctor|Appointment|etc
+  entityId    Int?
+  changes     String?  // JSON string of changes
+  ipAddress   String?
+  userAgent   String?
+  success     Boolean  @default(true)
+  errorMessage String?
+  createdAt   DateTime @default(now())
+  
+  @@index([userId])
+  @@index([action])
+  @@index([entity])
+  @@index([createdAt])
+}
+
+model TwoFactorSecret {
+  id        Int      @id @default(autoincrement())
+  userId    Int      @unique
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  secret    String   // Encrypted TOTP secret
+  enabled   Boolean  @default(false)
+  backupCodes String? // Encrypted backup codes (JSON array)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+// GDPR & Compliance Models
+
+model ModificationHistory {
+  id         Int      @id @default(autoincrement())
+  entityType String   // Patient|Doctor|Appointment|etc
+  entityId   Int
+  userId     Int
+  user       User     @relation(fields: [userId], references: [id])
+  action     String   // CREATE|UPDATE|DELETE
+  changes    String?  // JSON string of changes
+  oldData    String?  // JSON string of old data (for DELETE)
+  newData    String?  // JSON string of new data (for CREATE)
+  createdAt  DateTime @default(now())
+  
+  @@index([entityType, entityId])
+  @@index([userId])
+  @@index([createdAt])
+}
+
+model DocumentSignature {
+  id           Int      @id @default(autoincrement())
+  documentId   Int
+  documentType String   // PRESCRIPTION|MEDICAL_CERTIFICATE|REFERRAL_LETTER|etc
+  userId       Int
+  user         User     @relation(fields: [userId], references: [id])
+  contentHash  String   // SHA-256 hash of document content
+  signature    String   // HMAC signature
+  signedAt     DateTime
+  createdAt    DateTime @default(now())
+  
+  @@index([documentId, documentType])
+  @@index([userId])
+  @@index([signedAt])
 }

@@ -1,8 +1,8 @@
 import { Hono } from 'hono'
 import { z } from 'zod'
 import { zValidator } from '@hono/zod-validator'
-import { prisma } from '../lib/prisma'
-import { requireAuth } from '../middlewares/auth'
+import { prisma } from '../lib/prisma.js'
+import { requireAuth } from '../middlewares/auth.js'
 
 import type { HonoEnv } from '../types/env.js'
 

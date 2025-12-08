@@ -1,13 +1,13 @@
 "use client"
 
 import { useState } from "react"
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
+import { Card, CardContent } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { Input } from "@/components/ui/input"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog"
-import { Search, Filter, Eye, Calendar, Phone, Mail, MapPin, User, FileText, Activity, Clock, X, Users, UserCheck, CalendarClock, UserX } from "lucide-react"
+import { Search, Eye, Calendar, Phone, Mail, MapPin, User, Activity, Clock, Users, UserCheck, CalendarClock, UserX } from "lucide-react"
 
 type Patient = {
   id: string
@@ -166,15 +166,6 @@ export default function DoctorPatients() {
     return new Date(dateString).toLocaleDateString("fr-FR")
   }
 
-  const formatDateTime = (dateString: string) => {
-    return new Date(dateString).toLocaleString("fr-FR", {
-      day: "2-digit",
-      month: "2-digit",
-      year: "numeric",
-      hour: "2-digit",
-      minute: "2-digit",
-    })
-  }
 
   const getGenderIcon = (gender: string) => {
     return gender === "female" ? "♀" : "♂"

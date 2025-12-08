@@ -1,6 +1,7 @@
 "use client"
 
 import { PatientSidebar } from "@/components/patient/patient-sidebar"
+import { AuthGuard } from "@/components/auth-guard"
 
 export default function PatientLayout({
     children,
@@ -8,11 +9,13 @@ export default function PatientLayout({
     children: React.ReactNode
 }) {
     return (
-        <div className="flex min-h-screen bg-background">
-            <PatientSidebar />
-            <main className="flex-1 lg:pl-64">
-                {children}
-            </main>
-        </div>
+        <AuthGuard allowedRoles={["PATIENT"]}>
+            <div className="flex min-h-screen bg-background">
+                <PatientSidebar />
+                <main className="flex-1 lg:pl-64">
+                    {children}
+                </main>
+            </div>
+        </AuthGuard>
     )
 }

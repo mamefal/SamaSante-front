@@ -207,7 +207,7 @@ export default function OrganizationsManagement() {
                         </div>
                         <DialogFooter>
                             <Button variant="outline" onClick={() => setIsDialogOpen(false)}>Annuler</Button>
-                            <Button onClick={handleCreate} className="bg-blue-600 hover:bg-blue-700">Créer l'organisation</Button>
+                            <Button onClick={handleCreate} className="bg-blue-600 hover:bg-blue-700">Créer l&apos;organisation</Button>
                         </DialogFooter>
                     </DialogContent>
                 </Dialog>

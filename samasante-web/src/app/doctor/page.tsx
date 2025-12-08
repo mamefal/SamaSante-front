@@ -15,7 +15,6 @@ import {
     ArrowUpRight,
     Loader2,
 } from "lucide-react"
-import Link from "next/link"
 import {
     AreaChart,
     Area,

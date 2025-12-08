@@ -25,7 +25,7 @@ export default function AdminSettings() {
             Paramètres Plateforme
           </h1>
           <p className="text-muted-foreground mt-2 text-lg">
-            Configuration générale de l'écosystème AMINA
+            Configuration générale de l&apos;écosystème AMINA
           </p>
         </div>
         <Button onClick={handleSave} className="bg-gradient-to-r from-blue-600 to-cyan-600 hover:from-blue-700 hover:to-cyan-700 shadow-lg hover:shadow-xl transition-all">

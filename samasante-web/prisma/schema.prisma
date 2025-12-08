@@ -12,6 +12,8 @@ enum Role {
   ADMIN
   DOCTOR
   PATIENT
+  HOSPITAL_ADMIN
+  SUPER_ADMIN
 }
 
 model User {
@@ -82,8 +84,8 @@ model MedicalFile {
   allergies  String?
   treatments String?
   notes      String?
- 
-
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
 }
 
 model Availability {
@@ -125,5 +127,4 @@ model DoctorDocument {
   issuedBy String?
   issuedAt DateTime?
   verified Boolean   @default(false)
-
 }

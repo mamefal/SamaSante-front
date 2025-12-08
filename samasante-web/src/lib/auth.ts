@@ -31,45 +31,36 @@ function hasWindow() {
   return typeof window !== "undefined"
 }
 
-export function setToken(token: string, userFromApi?: User) {
+/**
+ * @deprecated Token is now stored in HttpOnly cookie, not localStorage
+ * This function is kept for backward compatibility but does nothing
+ */
+export function setToken(token: string, user: User) {
   if (!hasWindow()) return
-  localStorage.setItem(TOKEN_KEY, token)
-
-  // Set cookie for middleware
-  document.cookie = `token=${token}; path=/; max-age=2592000; SameSite=Lax`
-
-  // Optionnel : persister un "user" minimal si l’API n’en renvoie pas
-  if (userFromApi) {
-    setUser(userFromApi)
-  } else {
-    const p = getPayload()
-    if (p) {
-      setUser({
-        id: Number(p.sub),
-        role: p.role,
-        doctorId: p.doctorId ?? null,
-        patientId: p.patientId ?? null,
-      })
-    }
-  }
+  // Token is in HttpOnly cookie, just set user
+  setUser(user)
 }
 
+/**
+ * @deprecated Token is now in HttpOnly cookie, not accessible from JavaScript
+ */
 export function getToken(): string | null {
-  if (!hasWindow()) return null
-  return localStorage.getItem(TOKEN_KEY)
+  return null // Token is in HttpOnly cookie
 }
 
+/**
+ * @deprecated Token is in HttpOnly cookie, cleared by logout
+ */
 export function clearToken() {
-  if (!hasWindow()) return
-  localStorage.removeItem(TOKEN_KEY)
+  // Token is in HttpOnly cookie, will be cleared by backend
 }
 
 export function setUser(u: User) {
   if (!hasWindow()) return
   localStorage.setItem(USER_KEY, JSON.stringify(u))
 
-  // Set cookie for middleware
-  document.cookie = `user=${encodeURIComponent(JSON.stringify(u))}; path=/; max-age=2592000; SameSite=Lax`
+  // Cookie is set by backend (token)
+  // We don't need to set user cookie client-side
 }
 
 export function getUser(): User | null {
@@ -89,49 +80,46 @@ export function clearUser() {
 }
 
 export function logout() {
-  clearToken()
   clearUser()
 
-  // Clear cookies
+  // Clear cookies - the backend will also clear them on /auth/logout
   if (hasWindow()) {
     document.cookie = 'token=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT'
-    document.cookie = 'user=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT'
   }
 }
 
 // --- JWT utils ---
+// Note: Token is in HttpOnly cookie, not accessible from JavaScript
+// These functions now work with user data from localStorage
+
+/**
+ * @deprecated Token is in HttpOnly cookie, payload not accessible
+ * Use getUser() instead
+ */
 export function getPayload(): TokenPayload | null {
-  const token = getToken()
-  if (!token) return null
-  try {
-    return jwtDecode<TokenPayload>(token)
-  } catch {
-    return null
-  }
+  // Token is in HttpOnly cookie, not accessible from JavaScript
+  return null
 }
 
 export function isAuthenticated(): boolean {
-  const p = getPayload()
-  if (!p) return false
-  if (typeof p.exp === "number") {
-    const nowSec = Math.floor(Date.now() / 1000)
-    if (p.exp <= nowSec) return false
-  }
-  return true
+  // Check if user data exists in localStorage
+  // The middleware verifies the actual token cookie server-side
+  return getUser() !== null
 }
 
 export function getRole(): UserRole | null {
-  return getPayload()?.role ?? null
+  const user = getUser()
+  return user?.role ?? null
 }
 
 export function getDoctorId(): number | null {
-  const p = getPayload()
-  return (p?.doctorId ?? null) as number | null
+  const user = getUser()
+  return user?.doctorId ?? null
 }
 
 export function getPatientId(): number | null {
-  const p = getPayload()
-  return (p?.patientId ?? null) as number | null
+  const user = getUser()
+  return user?.patientId ?? null
 }
 
 /** Petit helper si tu veux construire des headers fetch/axios manuellement */
@@ -139,3 +127,7 @@ export function authHeader(): Record<string, string> {
   const t = getToken()
   return t ? { Authorization: `Bearer ${t}` } : {}
 }
+
+
+
+

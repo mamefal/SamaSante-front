@@ -1,7 +1,7 @@
 import { Hono } from 'hono'
-import { prisma } from '../lib/prisma'
-import { tenantMiddleware, getOrganizationFilter } from '../middleware/tenant'
-import { requireAuth } from '../middlewares/auth'
+import { prisma } from '../lib/prisma.js'
+import { tenantMiddleware, getOrganizationFilter } from '../middleware/tenant.js'
+import { requireAuth } from '../middlewares/auth.js'
 
 import type { HonoEnv } from '../types/env.js'
 

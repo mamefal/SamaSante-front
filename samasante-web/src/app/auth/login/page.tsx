@@ -6,9 +6,14 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { api } from "@/lib/api"
-import { setToken } from "@/lib/auth"
+import { setToken, setUser } from "@/lib/auth"
 import { toast } from "sonner"
 import { Loader2, ArrowLeft } from "lucide-react"
+
+// Logger conditionnel pour le développement uniquement
+const isDev = process.env.NODE_ENV === 'development'
+const devLog = (...args: any[]) => isDev && console.log(...args)
+const devError = (...args: any[]) => isDev && console.error(...args)
 
 export default function LoginPage() {
   const router = useRouter()
@@ -21,13 +26,13 @@ export default function LoginPage() {
     setLoading(true)
 
     try {
-      console.log('Attempting login with:', email)
+      devLog('Attempting login with:', email)
       const res = await api.post("/auth/login", { email, password })
-      console.log('Login response:', res.data)
+      devLog('Login response:', res.data)
 
       // Determine redirect URL based on role
       const role = res.data.user.role
-      console.log('User role:', role)
+      devLog('User role:', role)
 
       let redirectUrl = "/patient"
       if (role === "DOCTOR") {
@@ -38,29 +43,36 @@ export default function LoginPage() {
         redirectUrl = "/super-admin"
       }
 
-      // Save token and user data BEFORE redirect
-      setToken(res.data.token, res.data.user)
+      // Save user data only (token is in HttpOnly cookie)
+      setUser(res.data.user)
       toast.success("Connexion réussie")
 
-      console.log('Redirecting to:', redirectUrl)
-      // Force immediate redirect
+      devLog('Redirecting to:', redirectUrl)
+
+      // Show loading overlay during redirect
+      toast.loading("Redirection en cours...", { id: "redirect" })
+
+      // Force cache refresh with timestamp and location.replace
       setTimeout(() => {
-        window.location.href = redirectUrl
-      }, 100)
+        // Add timestamp to force cache refresh
+        const cacheBustUrl = `${redirectUrl}?_t=${Date.now()}`
+        // Use replace instead of href to prevent back button issues
+        window.location.replace(cacheBustUrl)
+      }, 1000)  // 1 second pour garantir que le cookie est disponible
     } catch (error: any) {
-      console.error('Login error:', error)
+      devError('Login error:', error)
 
       if (error.response) {
         // Server responded with error
-        console.error('Error response:', error.response.data)
+        devError('Error response:', error.response.data)
         toast.error(error.response.data.message || "Identifiants invalides")
       } else if (error.request) {
         // Request made but no response
-        console.error('No response received:', error.request)
+        devError('No response received:', error.request)
         toast.error("Impossible de contacter le serveur")
       } else {
         // Something else happened
-        console.error('Error message:', error.message)
+        devError('Error message:', error.message)
         toast.error("Une erreur est survenue")
       }
     } finally {
@@ -69,7 +81,17 @@ export default function LoginPage() {
   }
 
   return (
-    <div className="min-h-screen bg-white dark:bg-black flex items-center justify-center p-6">
+    <div className="min-h-screen bg-white dark:bg-black flex items-center justify-center p-6 relative">
+      {/* Loading Overlay */}
+      {loading && (
+        <div className="absolute inset-0 bg-background/80 backdrop-blur-sm flex items-center justify-center z-50">
+          <div className="flex flex-col items-center gap-3">
+            <Loader2 className="h-12 w-12 animate-spin text-primary" />
+            <p className="text-sm text-muted-foreground animate-pulse">Connexion en cours...</p>
+          </div>
+        </div>
+      )}
+
       <div className="w-full max-w-md">
         {/* Back Button */}
         <Link
@@ -132,12 +154,12 @@ export default function LoginPage() {
           <Button
             type="submit"
             disabled={loading}
-            className="w-full h-11 bg-blue-500 hover:bg-blue-600 text-white rounded-full font-medium"
+            className="w-full h-11 bg-blue-500 hover:bg-blue-600 text-white rounded-full font-medium transition-all"
           >
             {loading ? (
               <>
                 <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                Connexion...
+                Connexion en cours...
               </>
             ) : (
               "Se connecter"

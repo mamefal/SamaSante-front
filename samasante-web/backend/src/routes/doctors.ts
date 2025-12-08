@@ -1,9 +1,9 @@
 import { Hono } from 'hono'
 import { z } from 'zod'
 import { zValidator } from '@hono/zod-validator'
-import { prisma } from '../lib/prisma'
-import { requireAuth } from '../middlewares/auth'
-import { tenantMiddleware, getOrganizationFilter } from '../middleware/tenant'
+import { prisma } from '../lib/prisma.js'
+import { requireAuth } from '../middlewares/auth.js'
+import { tenantMiddleware, getOrganizationFilter } from '../middleware/tenant.js'
 
 import type { HonoEnv } from '../types/env.js'
 

@@ -15,14 +15,7 @@ import {
     DialogTitle,
     DialogTrigger,
 } from "@/components/ui/dialog"
-import {
-    Select,
-    SelectContent,
-    SelectItem,
-    SelectTrigger,
-    SelectValue,
-} from "@/components/ui/select"
-import { FileText, Plus, Search, Eye, Trash2, Calendar, User, Pill, FileStack, Stethoscope, Clock, AlertCircle } from "lucide-react"
+import { FileText, Plus, Search, Eye, Trash2, Calendar, User, Pill, FileStack, Stethoscope, AlertCircle } from "lucide-react"
 import { api } from "@/lib/api"
 import { toast } from "sonner"
 import { COMMON_MEDICATIONS, PRESCRIPTION_TEMPLATES, searchMedications } from "@/lib/medications"
@@ -217,7 +210,7 @@ export default function PrescriptionsPage() {
                                     <span>Créer une ordonnance</span>
                                 </DialogTitle>
                                 <DialogDescription className="ml-14">
-                                    Remplissez les informations de l'ordonnance et ajoutez les médicaments
+                                    Remplissez les informations de l&apos;ordonnance et ajoutez les médicaments
                                 </DialogDescription>
                             </DialogHeader>
 
@@ -355,7 +348,7 @@ export default function PrescriptionsPage() {
                                         Annuler
                                     </Button>
                                     <Button onClick={handleCreatePrescription} className="bg-blue-600 hover:bg-blue-700 text-white shadow-md">
-                                        Créer l'ordonnance
+                                        Créer l&apos;ordonnance
                                     </Button>
                                 </div>
                             </div>
@@ -482,7 +475,7 @@ export default function PrescriptionsPage() {
                                 <div className="h-10 w-10 bg-indigo-100 rounded-full flex items-center justify-center text-indigo-600">
                                     <FileText className="h-6 w-6" />
                                 </div>
-                                <span>Détails de l'ordonnance</span>
+                                <span>Détails de l&apos;ordonnance</span>
                             </DialogTitle>
                         </DialogHeader>
 

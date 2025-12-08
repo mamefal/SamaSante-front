@@ -4,7 +4,7 @@ import { prisma } from '../lib/prisma.js'
 const notifications = new Hono()
 
 notifications.get('/', async (c) => {
-    // Assuming 'user' is set in context by auth middleware
+    // @ts-ignore - Type issue with Hono context
     const user = c.get('user') as { id: number } | undefined
 
     if (!user) {

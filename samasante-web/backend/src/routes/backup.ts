@@ -1,5 +1,5 @@
 import { Hono } from 'hono'
-import type { HonoEnv } from '../types/env'
+import type { HonoEnv } from '../types/env.js'
 import { prisma } from '../lib/prisma.js'
 import { exec } from 'child_process'
 import { promisify } from 'util'
@@ -110,7 +110,7 @@ app.get('/:id/download', async (c) => {
 
         const file = await fs.readFile(filepath)
 
-        return new Response(file, {
+        return new Response(new Uint8Array(file), {
             headers: {
                 'Content-Type': 'application/sql',
                 'Content-Disposition': `attachment; filename="${id}"`

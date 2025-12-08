@@ -7,91 +7,60 @@ const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000/api'
 const axiosInstance = axios.create({
   baseURL: API_URL,
   timeout: 10000, // 10 seconds timeout
+  withCredentials: true, // Send cookies with requests
   headers: {
     'Content-Type': 'application/json',
   },
 })
 
-// Request interceptor for adding auth token
-axiosInstance.interceptors.request.use(
-  (config) => {
-    const token = localStorage.getItem('amina:token')
-    if (token) {
-      config.headers.Authorization = `Bearer ${token}`
-    }
-    return config
-  },
-  (error) => {
-    return Promise.reject(error)
-  }
-)
+// No need for Authorization header interceptor - using HttpOnly cookies instead
+// The cookie is sent automatically with each request
 
 // Response interceptor for error handling
 axiosInstance.interceptors.response.use(
   (response) => response,
   (error) => {
-    // AUTHENTICATION DISABLED FOR DEVELOPMENT
-    // Uncomment to re-enable automatic redirect to login on 401
+    // Handle 401 Unauthorized errors
     if (error.response?.status === 401) {
-      // Dispatch custom event for client-side redirect
+      // Clear auth data
       if (typeof window !== 'undefined') {
-        window.dispatchEvent(new Event('auth:unauthorized'))
+        localStorage.removeItem('amina:user')
+
+        // Redirect to login with error message
+        const currentPath = window.location.pathname
+        if (currentPath !== '/auth/login') {
+          window.location.href = '/auth/login?error=session_expired'
+        }
       }
     }
     return Promise.reject(error)
   }
 )
 
-// Simple in-memory cache
-const cache = new Map<string, { data: any; timestamp: number }>()
-const CACHE_DURATION = 30000 // 30 seconds
-
 export const api = {
   get: async (url: string, useCache = true) => {
-    // Check cache first
-    if (useCache && cache.has(url)) {
-      const cached = cache.get(url)!
-      if (Date.now() - cached.timestamp < CACHE_DURATION) {
-        return cached.data
-      }
-    }
-
-    const response = await axiosInstance.get(url)
-
-    // Store in cache
-    if (useCache) {
-      cache.set(url, { data: response, timestamp: Date.now() })
-    }
-
-    return response
+    // Cache removed in favor of SWR/React Query to avoid memory leaks
+    return axiosInstance.get(url)
   },
 
   post: async (url: string, data: any) => {
-    // Clear related cache entries on POST
-    cache.clear()
     return axiosInstance.post(url, data)
   },
 
   put: async (url: string, data: any) => {
-    // Clear related cache entries on PUT
-    cache.clear()
     return axiosInstance.put(url, data)
   },
 
   patch: async (url: string, data?: any) => {
-    // Clear related cache entries on PATCH
-    cache.clear()
     return axiosInstance.patch(url, data)
   },
 
   delete: async (url: string) => {
-    // Clear related cache entries on DELETE
-    cache.clear()
     return axiosInstance.delete(url)
   },
 
-  // Clear cache manually
+  // Clear cache manually (noop)
   clearCache: () => {
-    cache.clear()
+    // noop
   }
 }

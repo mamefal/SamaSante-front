@@ -18,7 +18,7 @@ function mapWeekdayTo0Sun6Sat(n: number) {
 function toLocalDateAt(day: Date, hhmm: string) {
   const [h, m] = hhmm.split(':').map(Number)
   const d = new Date(day)
-  d.setHours(h, m || 0, 0, 0)
+  d.setHours(h ?? 0, m ?? 0, 0, 0)
   return d
 }
 

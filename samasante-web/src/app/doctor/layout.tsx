@@ -1,6 +1,7 @@
 "use client"
 
 import { DoctorSidebar } from "@/components/doctor/doctor-sidebar"
+import { AuthGuard } from "@/components/auth-guard"
 
 export default function DoctorLayout({
     children,
@@ -8,11 +9,13 @@ export default function DoctorLayout({
     children: React.ReactNode
 }) {
     return (
-        <div className="flex min-h-screen bg-background">
-            <DoctorSidebar />
-            <main className="flex-1 lg:pl-64">
-                {children}
-            </main>
-        </div>
+        <AuthGuard allowedRoles={["DOCTOR"]}>
+            <div className="flex min-h-screen bg-background">
+                <DoctorSidebar />
+                <main className="flex-1 lg:pl-64">
+                    {children}
+                </main>
+            </div>
+        </AuthGuard>
     )
 }
