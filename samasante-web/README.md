@@ -1,6 +1,6 @@
 # 🏥 SamaSanté - Plateforme de Santé Numérique du Sénégal
 
-> Plateforme moderne de gestion de santé connectant patients, médecins et hôpitaux au Sénégal.
+> **Votre santé, notre priorité.** Connecter patients, médecins et hôpitaux pour un Sénégal en meilleure santé.
 
 [![TypeScript](https://img.shields.io/badge/TypeScript-5.0-blue.svg)](https://www.typescriptlang.org/)
 [![Next.js](https://img.shields.io/badge/Next.js-15.0-black.svg)](https://nextjs.org/)
@@ -11,107 +11,86 @@
 
 ## 📋 Table des Matières
 
-- [Aperçu](#-aperçu)
-- [Fonctionnalités](#-fonctionnalités)
-- [Stack Technique](#-stack-technique)
-- [Installation](#-installation)
-- [Configuration](#-configuration)
-- [Utilisation](#-utilisation)
-- [Architecture](#-architecture)
-- [API](#-api)
-- [Tests](#-tests)
-- [Déploiement](#-déploiement)
-- [Contribution](#-contribution)
+- [🎯 Aperçu](#-aperçu)
+- [✨ Fonctionnalités](#-fonctionnalités)
+- [🛠️ Stack Technique](#-stack-technique)
+- [🚀 Installation](#-installation)
+- [⚙️ Configuration](#-configuration)
+- [📖 Utilisation & Comptes de Test](#-utilisation--comptes-de-test)
+- [🏗️ Architecture](#-architecture)
+- [🔌 API](#-api)
+- [🚢 Déploiement](#-déploiement)
+- [👥 Contribution](#-contribution)
 
 ---
 
 ## 🎯 Aperçu
 
-SamaSanté est une plateforme SaaS de santé numérique conçue pour faciliter l'accès aux soins médicaux au Sénégal. Elle permet aux patients de prendre rendez-vous en ligne, aux médecins de gérer leurs consultations, et aux hôpitaux d'administrer leurs services.
+**SamaSanté** est une plateforme SaaS souveraine conçue pour moderniser l'accès aux soins au Sénégal. Elle offre une solution centralisée pour la gestion des parcours de soins, de la prise de rendez-vous à la gestion hospitalière.
 
-### Problème Résolu
+### 🌍 Contexte & Solution
 
-- ❌ Difficulté à prendre rendez-vous médical
-- ❌ Gestion papier des dossiers médicaux
-- ❌ Manque de coordination entre hôpitaux
-- ❌ Accès limité aux soins spécialisés
+Au Sénégal, l'accès aux soins peut être complexe. **SamaSanté** résout ces défis :
 
-### Solution
-
-- ✅ Prise de rendez-vous en ligne 24/7
-- ✅ Dossiers médicaux numériques sécurisés
-- ✅ Plateforme centralisée multi-hôpitaux
-- ✅ Accès facilité aux spécialistes
+| Problème | Solution SamaSanté |
+|----------|-------------------|
+| ❌ Files d'attente interminables | ✅ **Rendez-vous en ligne 24/7** |
+| ❌ Dossiers papiers perdus | ✅ **Dossier Médical Partagé (DMP) sécurisé** |
+| ❌ Manque de coordination | ✅ **Interconnexion Hôpitaux-Médecins** |
+| ❌ Données dispersées | ✅ **Monitoring national en temps réel** |
 
 ---
 
 ## ✨ Fonctionnalités
 
-### Pour les Patients
+### 👤 Espace Patient
 
-- 📅 Prise de rendez-vous en ligne
-- 📋 Dossier médical personnel
-- 💊 Suivi des prescriptions
-- 📄 Téléchargement de documents médicaux
-- 🔔 Notifications de rendez-vous
+- **Prise de rendez-vous** intuitive avec recherche par spécialité/quartier.
+- **Dossier médical** numérique (ordonnances, résultats d'analyses).
+- **Historique** des consultations.
+- **Rappels SMS/Email** automatiques.
 
-### Pour les Médecins
+### 👨‍⚕️ Espace Médecin
 
-- 👥 Gestion des patients
-- 📊 Tableau de bord avec statistiques
-- 📝 Création de prescriptions
-- 🗓️ Gestion d'agenda
-- 📈 Analyses et rapports
+- **Gestion d'agenda** et des disponibilités.
+- **Dossiers patients** accessibles en un clic.
+- **Prescription électronique** sécurisée.
+- **Tableau de bord** d'activité.
 
-### Pour les Hôpitaux
+### 🏥 Espace Hôpital
 
-- 🏥 Gestion multi-services
-- 👨‍⚕️ Administration des médecins
-- 📊 Statistiques globales
-- 🔐 Contrôle d'accès
-- 📑 Rapports d'activité
+- **Gestion multi-services** et du personnel.
+- **Vue d'ensemble** des admissions et lits.
+- **Statistiques** de fréquentation.
 
-### Pour les Super Admins
+### ⚡ Espace Super Admin (Ministère/Autorité)
 
-- 🖥️ Monitoring système en temps réel
-- 📈 Métriques de performance
-- 🔍 Logs et audits
-- ⚙️ Configuration globale
+- **Monitoring global** de la plateforme.
+- **Gestion des établissements** de santé.
+- **Audit et sécurité**.
 
 ---
 
 ## 🛠️ Stack Technique
 
-### Frontend
+Une architecture moderne, robuste et sécurisée.
+
+### Frontend (Client)
 
 - **Framework** : Next.js 15 (App Router)
-- **Language** : TypeScript 5
-- **Styling** : Tailwind CSS
-- **UI Components** : Radix UI + shadcn/ui
-- **State Management** : React Hooks
-- **Forms** : React Hook Form + Zod
-- **HTTP Client** : Axios
-- **Notifications** : Sonner
+- **Langage** : TypeScript
+- **UI/UX** : Tailwind CSS, Radix UI, Shadcn/ui, Lucide React
+- **État** : React Hooks, SWR
+- **Formulaires** : React Hook Form, Zod
 
-### Backend
+### Backend (API)
 
+- **Framework** : Hono (Ultra-rapide)
 - **Runtime** : Node.js
-- **Framework** : Hono
-- **Language** : TypeScript
-- **Database** : PostgreSQL
-- **ORM** : Prisma 6
-- **Authentication** : JWT (jose)
-- **Validation** : Zod
-- **Cache** : Redis (ioredis)
-- **Rate Limiting** : hono-rate-limiter
-
-### DevOps
-
-- **Monitoring** : Sentry
-- **Testing** : Vitest
-- **Linting** : ESLint
-- **Type Checking** : TypeScript
-- **Package Manager** : npm
+- **Base de données** : PostgreSQL
+- **ORM** : Prisma
+- **Authentification** : JWT (HttpOnly Cookies), Bcrypt
+- **Sécurité** : Rate Limiting, Helmet, CORS strict
 
 ---
 
@@ -120,21 +99,20 @@ SamaSanté est une plateforme SaaS de santé numérique conçue pour faciliter l
 ### Prérequis
 
 - Node.js 18+
-- PostgreSQL 14+
-- Redis (optionnel)
-- npm ou yarn
+- PostgreSQL
+- Git
 
-### 1. Cloner le Projet
+### 1. Cloner le projet
 
 ```bash
 git clone https://github.com/votre-org/samasante-web.git
 cd samasante-web
 ```
 
-### 2. Installer les Dépendances
+### 2. Installer les dépendances
 
 ```bash
-# Frontend
+# Racine (Frontend)
 npm install
 
 # Backend
@@ -147,280 +125,98 @@ cd ..
 
 ```bash
 cd backend
-
-# Créer le fichier .env
 cp .env.example .env
-
-# Éditer .env avec vos paramètres
-nano .env
-
-# Générer le client Prisma
+# Modifier .env avec vos accès DB
 npx prisma generate
-
-# Exécuter les migrations
 npx prisma migrate dev
-
-# (Optionnel) Seed la base de données
-npx prisma db seed
+npx prisma db seed # (Optionnel) Données de base
 ```
 
-### 4. Lancer l'Application
+### 4. Lancer le développement
 
 ```bash
-# Terminal 1 - Backend
+# Terminal 1 : Backend (Port 3000)
 cd backend
 npm run dev
 
-# Terminal 2 - Frontend
+# Terminal 2 : Frontend (Port 3001)
+# Le frontend utilise un proxy vers le backend
 npm run dev
 ```
 
-L'application sera accessible sur :
-
-- **Frontend** : <http://localhost:3001>
-- **Backend** : <http://localhost:3000>
-- **Prisma Studio** : <http://localhost:5555> (après `npx prisma studio`)
+Accédez à l'application sur **[http://localhost:3001](http://localhost:3001)**.
 
 ---
 
-## ⚙️ Configuration
+## 📖 Utilisation & Comptes de Test
 
-### Variables d'Environnement
+Pour explorer la plateforme, utilisez ces comptes de démonstration (Données fictives) :
 
-#### Backend (.env)
+| Rôle | Email | Mot de passe | Accès |
+|------|-------|--------------|-------|
+| 👤 **Patient** | `amadou.diallo@test.sn` | `Patient@2024!Secure` | `/patient` |
+| 👨‍⚕️ **Docteur** | `fatou.sall@test.sn` | `Doctor@2024!Secure` | `/doctor` |
+| 🏥 **Hôpital** | `moussa.ndiaye@test.sn` | `Hospital@2024!Secure` | `/hospital` |
+| ⚡ **Admin** | `awa.thiam@test.sn` | `Admin@2024!SuperSecure` | `/super-admin` |
 
-```env
-# Database
-DATABASE_URL="postgresql://user:password@localhost:5432/samasante"
-
-# JWT
-JWT_SECRET="votre-secret-jwt-super-securise-ici"
-
-# Encryption
-ENCRYPTION_KEY="votre-cle-de-chiffrement-32-caracteres"
-
-# Redis (optionnel)
-REDIS_URL="redis://localhost:6379"
-
-# Server
-PORT=3000
-NODE_ENV=development
-FRONTEND_URL=http://localhost:3001
-
-# Sentry (optionnel)
-SENTRY_DSN=votre-sentry-dsn
-```
-
-#### Frontend (.env.local)
-
-```env
-NEXT_PUBLIC_API_URL=http://localhost:3000/api
-NEXT_PUBLIC_SENTRY_DSN=votre-sentry-dsn
-```
-
----
-
-## 📖 Utilisation
-
-### Comptes de Test
-
-Pour tester l'application, utilisez ces identifiants :
-
-| Rôle | Email | Mot de passe |
-|------|-------|--------------|
-| Patient | <patient@test.com> | test123 |
-| Docteur | <docteur@test.com> | test123 |
-| Admin Hôpital | <admin@test.com> | test123 |
-| Super Admin | <superadmin@test.com> | test123 |
-
-### Créer un Nouveau Patient
-
-1. Aller sur <http://localhost:3001/auth/signup>
-2. Remplir le formulaire d'inscription
-3. Se connecter avec les identifiants créés
-
-### Accéder au Monitoring
-
-1. Se connecter avec le compte Super Admin
-2. Naviguer vers <http://localhost:3001/monitoring>
-3. Visualiser les métriques en temps réel
+> **Note** : Le système de sécurité inclut une protection contre les attaques par force brute. Après 5 tentatives échouées, le compte est temporairement bloqué.
 
 ---
 
 ## 🏗️ Architecture
 
-### Structure du Projet
+L'application utilise une architecture **Monorepo** simplifiée avec séparation claire des responsabilités.
 
-```
-samasante-web/
-├── backend/                 # API Backend (Hono)
-│   ├── src/
-│   │   ├── routes/         # Routes API
-│   │   ├── lib/            # Utilitaires
-│   │   ├── tests/          # Tests
-│   │   └── server.ts       # Point d'entrée
-│   ├── prisma/
-│   │   └── schema.prisma   # Schéma de base de données
-│   └── package.json
-│
-├── src/                     # Frontend (Next.js)
-│   ├── app/                # App Router
-│   │   ├── auth/           # Pages d'authentification
-│   │   ├── patient/        # Dashboard patient
-│   │   ├── doctor/         # Dashboard docteur
-│   │   ├── hospital/       # Dashboard hôpital
-│   │   ├── monitoring/     # Monitoring système
-│   │   └── page.tsx        # Page d'accueil
-│   ├── components/         # Composants réutilisables
-│   ├── lib/                # Utilitaires frontend
-│   └── styles/
-│
-├── public/                  # Assets statiques
-└── package.json
+```mermaid
+graph TD
+    User[Utilisateur] -->|HTTPS| NextJS[Frontend Next.js :3001]
+    NextJS -->|Proxy /api| Hono[Backend Hono :3000]
+    Hono -->|Query| Prisma[Prisma ORM]
+    Prisma -->|SQL| DB[(PostgreSQL)]
+    Hono -->|Auth| JWT[JWT Service]
 ```
 
-### Flux de Données
+### Sécurité
 
-```
-Client (Browser)
-    ↓
-Next.js Frontend (Port 3001)
-    ↓
-Axios HTTP Client
-    ↓
-Hono Backend API (Port 3000)
-    ↓
-Prisma ORM
-    ↓
-PostgreSQL Database
-```
+- **Cookies HttpOnly** : Protection contre XSS.
+- **Proxy Reverse** : Masquage de l'architecture interne.
+- **Validation Zod** : Intégrité des données entrantes.
 
 ---
 
 ## 🔌 API
 
-### Endpoints Principaux
+Documentation Swagger disponible en développement sur :
+`http://localhost:3000/api/docs`
 
-#### Authentification
+### Endpoints Clés
 
-- `POST /api/auth/register` - Inscription
-- `POST /api/auth/login` - Connexion
-- `POST /api/auth/logout` - Déconnexion
-
-#### Patients
-
-- `GET /api/patients` - Liste des patients
-- `GET /api/patients/:id` - Détails d'un patient
-- `PUT /api/patients/:id` - Modifier un patient
-
-#### Rendez-vous
-
-- `GET /api/appointments` - Liste des rendez-vous
-- `POST /api/appointments` - Créer un rendez-vous
-- `PUT /api/appointments/:id` - Modifier un rendez-vous
-- `DELETE /api/appointments/:id` - Annuler un rendez-vous
-
-#### Monitoring (Super Admin)
-
-- `GET /api/monitoring/stats` - Statistiques système
-- `GET /api/monitoring/health` - Santé du système
-- `GET /api/monitoring/metrics` - Métriques d'activité
-
-### Documentation API
-
-La documentation complète de l'API est disponible sur :
-<http://localhost:3000/api/docs>
-
----
-
-## 🧪 Tests
-
-### Lancer les Tests
-
-```bash
-# Frontend
-npm run test
-
-# Backend
-cd backend
-npm run test
-
-# Coverage
-npm run test:coverage
-```
-
-### Type Checking
-
-```bash
-# Frontend
-npm run typecheck
-
-# Backend
-cd backend
-npm run typecheck
-```
-
----
-
-## 🚢 Déploiement
-
-### Production Build
-
-```bash
-# Frontend
-npm run build
-npm run start
-
-# Backend
-cd backend
-npm run build
-npm run start
-```
-
-### Variables d'Environnement Production
-
-Assurez-vous de définir :
-
-- `NODE_ENV=production`
-- `DATABASE_URL` avec votre base de données de production
-- `JWT_SECRET` sécurisé
-- `ENCRYPTION_KEY` sécurisé
-- URLs de production pour CORS
+- `POST /auth/login` : Connexion sécurisée
+- `GET /patients/me` : Profil patient
+- `GET /appointments` : Liste des rendez-vous
+- `GET /monitoring/stats` : Statistiques globales
 
 ---
 
 ## 👥 Contribution
 
-Les contributions sont les bienvenues ! Veuillez suivre ces étapes :
+Les contributions sont les bienvenues pour améliorer la santé au Sénégal !
 
-1. Fork le projet
-2. Créer une branche (`git checkout -b feature/AmazingFeature`)
-3. Commit vos changements (`git commit -m 'Add AmazingFeature'`)
-4. Push vers la branche (`git push origin feature/AmazingFeature`)
+1. Forker le projet
+2. Créer une branche (`git checkout -b feature/MaSuperFeature`)
+3. Commit (`git commit -m 'Ajout de MaSuperFeature'`)
+4. Push (`git push origin feature/MaSuperFeature`)
 5. Ouvrir une Pull Request
 
 ---
 
-## 📄 License
+## 📄 Licence
 
-Ce projet est sous licence MIT. Voir le fichier [LICENSE](LICENSE) pour plus de détails.
-
----
-
-## 📞 Contact
-
-- **Email** : <contact@samasante.sn>
-- **Website** : <https://samasante.sn>
-- **GitHub** : <https://github.com/votre-org/samasante-web>
+Distribué sous licence MIT. Voir `LICENSE` pour plus d'informations.
 
 ---
 
-## 🙏 Remerciements
-
-- L'équipe de développement SamaSanté
-- La communauté open source
-- Tous les contributeurs
-
----
-
-**Fait avec ❤️ pour améliorer l'accès aux soins au Sénégal**
+<div align="center">
+  <b>Fait avec ❤️ à Dakar, Sénégal 🇸🇳</b><br>
+  SamaSanté © 2025
+</div>
