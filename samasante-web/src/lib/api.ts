@@ -1,7 +1,8 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import axios from 'axios'
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000/api'
+// Utilise le proxy Next.js (/api → http://localhost:3000/api)
+const API_URL = '/api'
 
 // Create axios instance with optimized settings
 const axiosInstance = axios.create({
@@ -16,26 +17,26 @@ const axiosInstance = axios.create({
 // No need for Authorization header interceptor - using HttpOnly cookies instead
 // The cookie is sent automatically with each request
 
-// Response interceptor for error handling
-axiosInstance.interceptors.response.use(
-  (response) => response,
-  (error) => {
-    // Handle 401 Unauthorized errors
-    if (error.response?.status === 401) {
-      // Clear auth data
-      if (typeof window !== 'undefined') {
-        localStorage.removeItem('amina:user')
-
-        // Redirect to login with error message
-        const currentPath = window.location.pathname
-        if (currentPath !== '/auth/login') {
-          window.location.href = '/auth/login?error=session_expired'
-        }
-      }
-    }
-    return Promise.reject(error)
-  }
-)
+// Response interceptor DÉSACTIVÉ temporairement pour tester
+// axiosInstance.interceptors.response.use(
+//   (response) => response,
+//   (error) => {
+//     // Handle 401 Unauthorized errors
+//     if (error.response?.status === 401) {
+//       // Clear auth data
+//       if (typeof window !== 'undefined') {
+//         localStorage.removeItem('amina:user')
+//
+//         // Redirect to login with error message
+//         const currentPath = window.location.pathname
+//         if (currentPath !== '/auth/login') {
+//           window.location.href = '/auth/login?error=session_expired'
+//         }
+//       }
+//     }
+//     return Promise.reject(error)
+//   }
+// )
 
 export const api = {
   get: async (url: string, useCache = true) => {

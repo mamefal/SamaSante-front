@@ -14,7 +14,7 @@ const app = new Hono<HonoEnv>()
 // Configure CORS with specific origin
 app.use('*', cors({
   origin: process.env.FRONTEND_URL || 'http://localhost:3001',
-  credentials: true,
+  credentials: true, // IMPORTANT : Permet l'envoi de cookies
   allowMethods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH'],
   allowHeaders: ['Content-Type', 'Authorization'],
 }))

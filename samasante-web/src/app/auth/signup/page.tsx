@@ -7,9 +7,9 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { api } from "@/lib/api"
-import { setToken } from "@/lib/auth"
+import { setUser } from "@/lib/auth"
 import { toast } from "sonner"
-import { Loader2, ArrowLeft } from "lucide-react"
+import { Loader2, ArrowLeft, Heart, CheckCircle2 } from "lucide-react"
 
 export default function SignupPage() {
   const router = useRouter()
@@ -43,49 +43,43 @@ export default function SignupPage() {
       }
 
       const res = await api.post("/auth/register", payload)
-      setToken(res.data.token, res.data.user)
-      toast.success("Compte créé avec succès ! Bienvenue sur AMINA")
+      setUser(res.data.user)
+      toast.success("Compte créé avec succès ! Bienvenue sur SamaSanté")
 
-      // Redirect to patient dashboard
       router.replace("/patient")
     } catch (e) {
-      // toast d'erreur déjà géré par l'interceptor axios
+      // Error handled by interceptor
     } finally {
       setLoading(false)
     }
   }
 
   return (
-    <div className="min-h-screen bg-white dark:bg-black flex items-center justify-center p-6">
-      <div className="w-full max-w-md">
-        {/* Back Button */}
+    <div className="min-h-screen bg-background flex items-center justify-center p-6">
+      <div className="w-full max-w-md fade-in">
         <Link
           href="/"
-          className="inline-flex items-center text-sm text-gray-600 dark:text-gray-400 hover:text-black dark:hover:text-white mb-8 transition-colors"
+          className="inline-flex items-center text-sm text-muted-foreground hover:text-foreground mb-8 transition-colors"
         >
           <ArrowLeft className="h-4 w-4 mr-2" />
           Retour
         </Link>
 
-        {/* Logo */}
-        <div className="flex items-center gap-2 mb-12">
-          <div className="h-7 w-7 bg-gradient-to-br from-blue-500 to-cyan-500 rounded-lg flex items-center justify-center">
-            <span className="text-white font-bold text-sm">S</span>
+        <div className="flex items-center gap-3 mb-8">
+          <div className="h-12 w-12 bg-primary rounded-xl flex items-center justify-center">
+            <Heart className="text-white h-7 w-7" />
           </div>
-          <span className="text-lg font-semibold">AMINA</span>
+          <span className="text-2xl font-bold">SamaSanté</span>
         </div>
 
-        {/* Title */}
-        <div className="mb-10">
-          <h1 className="text-4xl font-semibold tracking-tight mb-2">Créer un compte</h1>
-          <p className="text-gray-600 dark:text-gray-400">
+        <div className="mb-8">
+          <h1 className="text-4xl font-bold tracking-tight mb-2">Créer un compte</h1>
+          <p className="text-muted-foreground">
             Inscription patient - Gratuit et rapide
           </p>
         </div>
 
-        {/* Form */}
         <form onSubmit={handleSubmit} className="space-y-6">
-          {/* Name Fields */}
           <div className="grid grid-cols-2 gap-4">
             <div className="space-y-2">
               <Label htmlFor="firstName" className="text-sm font-medium">Prénom</Label>
@@ -95,7 +89,7 @@ export default function SignupPage() {
                 value={firstName}
                 onChange={(e) => setFirstName(e.target.value)}
                 required
-                className="h-11 rounded-xl border-gray-300 dark:border-gray-700"
+                className="h-12 rounded-lg"
                 disabled={loading}
               />
             </div>
@@ -107,13 +101,12 @@ export default function SignupPage() {
                 value={lastName}
                 onChange={(e) => setLastName(e.target.value)}
                 required
-                className="h-11 rounded-xl border-gray-300 dark:border-gray-700"
+                className="h-12 rounded-lg"
                 disabled={loading}
               />
             </div>
           </div>
 
-          {/* Date of Birth */}
           <div className="space-y-2">
             <Label htmlFor="dob" className="text-sm font-medium">Date de naissance</Label>
             <Input
@@ -122,12 +115,11 @@ export default function SignupPage() {
               value={dob}
               onChange={(e) => setDob(e.target.value)}
               required
-              className="h-11 rounded-xl border-gray-300 dark:border-gray-700"
+              className="h-12 rounded-lg"
               disabled={loading}
             />
           </div>
 
-          {/* Email */}
           <div className="space-y-2">
             <Label htmlFor="email" className="text-sm font-medium">Email</Label>
             <Input
@@ -137,12 +129,11 @@ export default function SignupPage() {
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               required
-              className="h-11 rounded-xl border-gray-300 dark:border-gray-700"
+              className="h-12 rounded-lg"
               disabled={loading}
             />
           </div>
 
-          {/* Password */}
           <div className="space-y-2">
             <Label htmlFor="password" className="text-sm font-medium">Mot de passe</Label>
             <Input
@@ -153,7 +144,7 @@ export default function SignupPage() {
               onChange={(e) => setPassword(e.target.value)}
               required
               minLength={6}
-              className="h-11 rounded-xl border-gray-300 dark:border-gray-700"
+              className="h-12 rounded-lg"
               disabled={loading}
             />
           </div>
@@ -161,11 +152,11 @@ export default function SignupPage() {
           <Button
             type="submit"
             disabled={loading}
-            className="w-full h-11 bg-blue-500 hover:bg-blue-600 text-white rounded-full font-medium"
+            className="w-full h-12 bg-primary hover:bg-primary/90 text-white rounded-lg font-medium btn-scale"
           >
             {loading ? (
               <>
-                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                <Loader2 className="mr-2 h-5 w-5 animate-spin" />
                 Création...
               </>
             ) : (
@@ -174,17 +165,18 @@ export default function SignupPage() {
           </Button>
         </form>
 
-        {/* Info Box */}
-        <div className="mt-6 p-4 bg-blue-50 dark:bg-blue-950/20 rounded-xl border border-blue-200 dark:border-blue-900">
-          <p className="text-sm text-gray-700 dark:text-gray-300">
-            <strong>Vous êtes médecin ?</strong> Les comptes médecins sont créés par votre hôpital. Contactez votre administration.
-          </p>
+        <div className="mt-6 p-4 bg-primary/10 rounded-lg border border-primary/20">
+          <div className="flex items-start gap-3">
+            <CheckCircle2 className="w-5 h-5 text-primary mt-0.5 flex-shrink-0" />
+            <p className="text-sm text-foreground">
+              <strong>Vous êtes médecin ?</strong> Les comptes médecins sont créés par votre hôpital. Contactez votre administration.
+            </p>
+          </div>
         </div>
 
-        {/* Login Link */}
         <div className="mt-8 text-center text-sm">
-          <span className="text-gray-600 dark:text-gray-400">Vous avez déjà un compte ? </span>
-          <Link href="/auth/login" className="text-blue-500 hover:text-blue-600 font-medium">
+          <span className="text-muted-foreground">Vous avez déjà un compte ? </span>
+          <Link href="/auth/login" className="text-primary hover:underline font-medium">
             Se connecter
           </Link>
         </div>

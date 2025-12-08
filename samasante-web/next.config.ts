@@ -48,6 +48,19 @@ const nextConfig = {
   }),
   */
 
+  // Proxy API requests to backend
+  async rewrites() {
+    return [
+      {
+        source: '/api/:path*',
+        destination: 'http://localhost:3000/api/:path*'
+      }
+    ]
+  },
+
+  // Allow dev access from network IP
+  allowedDevOrigins: ['http://192.168.1.20:3001'],
+
   // Optimize package imports for faster builds and smaller bundles
   optimizePackageImports: ['lucide-react', '@/components/ui'],
 

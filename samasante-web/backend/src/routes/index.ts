@@ -16,6 +16,7 @@ import { departments } from './departments.js'
 import { superAdmin } from './superAdmin.js'
 import hospitalAdmins from './hospitalAdmins.js'
 import backup from './backup.js'
+import { monitoring } from './monitoring.js'
 
 import type { HonoEnv } from '../types/env.js'
 
@@ -45,4 +46,5 @@ api.route('/documents', documents)
 api.route('/profile', profile)
 api.route('/medical-record', medicalRecord)
 api.route('/notifications', notifications)
+api.route('/monitoring', monitoring)
 

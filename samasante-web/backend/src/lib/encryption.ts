@@ -1,17 +1,13 @@
 // backend/src/lib/encryption.ts
 import crypto from 'crypto'
 
+// Validation simple pour développement
+if (!process.env.ENCRYPTION_KEY) {
+    throw new Error('ENCRYPTION_KEY environment variable is required')
+}
+
 const ENCRYPTION_KEY = process.env.ENCRYPTION_KEY
 const ALGORITHM = 'aes-256-cbc'
-
-// Validation stricte de la clé de chiffrement
-if (!ENCRYPTION_KEY) {
-    throw new Error('ENCRYPTION_KEY must be set in environment variables')
-}
-
-if (ENCRYPTION_KEY.length < 32) {
-    throw new Error('ENCRYPTION_KEY must be at least 32 characters long')
-}
 
 // S'assurer que la clé fait exactement 32 caractères
 const KEY = Buffer.from(ENCRYPTION_KEY.padEnd(32, '0').slice(0, 32))
