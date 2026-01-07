@@ -1,16 +1,8 @@
-"use client"
-
-import { useState } from "react"
-import { useRouter } from "next/navigation"
-import { Button } from "@/components/ui/button"
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog"
-import { Label } from "@/components/ui/label"
-import { Textarea } from "@/components/ui/textarea"
-import { Calendar } from "@/components/ui/calendar"
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { Clock } from "lucide-react"
-import { format } from "date-fns"
-import { fr } from "date-fns/locale"
+import React from 'react'
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog'
+import { Button } from '@/components/ui/button'
+import { Input } from '@/components/ui/input'
+import { api } from '@/lib/api'
 
 interface AppointmentBookingModalProps {
   isOpen: boolean
@@ -21,7 +13,7 @@ interface AppointmentBookingModalProps {
   patientId: string
 }
 
-export function AppointmentBookingModal({
+export default function AppointmentBookingModal({
   isOpen,
   onClose,
   doctorId,
@@ -29,134 +21,61 @@ export function AppointmentBookingModal({
   speciality,
   patientId,
 }: AppointmentBookingModalProps) {
-  const router = useRouter()
-  const [selectedDate, setSelectedDate] = useState<Date>()
-  const [selectedTime, setSelectedTime] = useState<string>("")
-  const [reason, setReason] = useState("")
-  const [availableSlots, setAvailableSlots] = useState<Array<{ time: string; display: string }>>([])
-  const [loading, setLoading] = useState(false)
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault()
+    const formData = new FormData(e.currentTarget as HTMLFormElement)
+    const date = formData.get('date') as string
+    const time = formData.get('time') as string
 
-  const handleDateSelect = async (date: Date | undefined) => {
-    if (!date) return
-    setSelectedDate(date)
-    setSelectedTime("")
+    if (!date || !time) return
 
-    // Fetch available time slots for the selected date
     try {
-      const response = await fetch(`/api/doctors/${doctorId}/availability?date=${format(date, "yyyy-MM-dd")}`)
-      const slots = await response.json()
-      setAvailableSlots(slots)
-    } catch (error) {
-      console.error("Error fetching availability:", error)
-    }
-  }
+      // Calculer l'heure de début et de fin (+30 min par défaut)
+      const startDate = new Date(`${date}T${time}`)
+      const endDate = new Date(startDate.getTime() + 30 * 60000)
 
-  const handleBookAppointment = async () => {
-    if (!selectedDate || !selectedTime || !reason.trim()) return
-
-    setLoading(true)
-    try {
-      const response = await fetch("/api/appointments", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          patient_id: patientId,
-          doctor_id: doctorId,
-          appointment_date: selectedTime,
-          reason: reason.trim(),
-        }),
+      await api.post('/appointments', {
+        doctorId: parseInt(doctorId),
+        patientId: parseInt(patientId),
+        motive: 'Consultation',
+        start: startDate.toISOString(),
+        end: endDate.toISOString(),
       })
 
-      if (response.ok) {
-        onClose()
-        // Reset form
-        setSelectedDate(undefined)
-        setSelectedTime("")
-        setReason("")
-        // Show success message or refresh appointments
-        router.refresh()
-      } else {
-        const error = await response.json()
-        alert(error.error || "Erreur lors de la prise de rendez-vous")
-      }
+      import('sonner').then(({ toast }) => {
+        toast.success('Rendez-vous confirmé !')
+      })
+      onClose()
     } catch (error) {
-      console.error("Error booking appointment:", error)
-      alert("Erreur lors de la prise de rendez-vous")
-    } finally {
-      setLoading(false)
+      console.error('Erreur lors de la prise de RDV:', error)
+      import('sonner').then(({ toast }) => {
+        toast.error('Erreur lors de la prise de rendez-vous.')
+      })
     }
   }
 
   return (
-    <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="sm:max-w-[500px]">
+    <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
+      <DialogContent className="sm:max-w-md">
         <DialogHeader>
-          <DialogTitle>Prendre rendez-vous</DialogTitle>
-          <p className="text-sm text-muted-foreground">
-            Dr. {doctorName} - {speciality}
-          </p>
+          <DialogTitle>Prendre rendez‑vous avec {doctorName}</DialogTitle>
         </DialogHeader>
-
-        <div className="space-y-6">
-          <div>
-            <Label>Sélectionner une date</Label>
-            <Calendar
-              mode="single"
-              selected={selectedDate}
-              onSelect={handleDateSelect}
-              disabled={(date) => date < new Date() || date.getDay() === 0}
-              locale={fr}
-              className="rounded-md border"
-            />
+        <form onSubmit={handleSubmit} className="space-y-4">
+          <Input type="hidden" name="doctorId" value={doctorId} />
+          <Input type="hidden" name="patientId" value={patientId} />
+          <div className="grid grid-cols-2 gap-2">
+            <Input type="date" name="date" required placeholder="Date" />
+            <Input type="time" name="time" required placeholder="Heure" />
           </div>
-
-          {selectedDate && availableSlots.length > 0 && (
-            <div>
-              <Label>Créneaux disponibles</Label>
-              <Select value={selectedTime} onValueChange={setSelectedTime}>
-                <SelectTrigger>
-                  <SelectValue placeholder="Choisir un créneau" />
-                </SelectTrigger>
-                <SelectContent>
-                  {availableSlots.map((slot) => (
-                    <SelectItem key={slot.time} value={slot.time}>
-                      <div className="flex items-center gap-2">
-                        <Clock className="h-4 w-4" />
-                        {slot.display}
-                      </div>
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-          )}
-
-          <div>
-            <Label htmlFor="reason">Motif de consultation</Label>
-            <Textarea
-              id="reason"
-              placeholder="Décrivez brièvement le motif de votre consultation..."
-              value={reason}
-              onChange={(e) => setReason(e.target.value)}
-              className="mt-1"
-            />
-          </div>
-
-          <div className="flex gap-3">
-            <Button variant="outline" onClick={onClose} className="flex-1 bg-transparent">
+          <DialogFooter>
+            <Button type="submit" className="bg-emerald-600 hover:bg-emerald-700">
+              Confirmer
+            </Button>
+            <Button variant="outline" onClick={onClose}>
               Annuler
             </Button>
-            <Button
-              onClick={handleBookAppointment}
-              disabled={!selectedDate || !selectedTime || !reason.trim() || loading}
-              className="flex-1"
-            >
-              {loading ? "Réservation..." : "Confirmer le rendez-vous"}
-            </Button>
-          </div>
-        </div>
+          </DialogFooter>
+        </form>
       </DialogContent>
     </Dialog>
   )

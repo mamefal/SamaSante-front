@@ -25,6 +25,12 @@ model User {
   doctorId  Int?
   patientId  Int?    @unique
   patient    Patient? @relation(fields: [patientId], references: [id])
+  organization   Organization? @relation(fields: [organizationId], references: [id])
+  organizationId Int?
+  notifications Notification[]
+  healthDocuments HealthDocument[]
+  stockMovements StockMovement[]
+  stockAlerts    StockAlert[]
   createdAt DateTime @default(now())
 }
 
@@ -45,6 +51,10 @@ model Doctor {
   documents      DoctorDocument[]
   createdAt      DateTime         @default(now())
   verifiedAt     DateTime?
+  consultations  ConsultationNote[]
+  prescriptions  Prescription[]
+  organization   Organization?   @relation(fields: [organizationId], references: [id])
+  organizationId Int?
   User           User[]
 }
 
@@ -57,7 +67,9 @@ model PracticeSite {
   address      String?
   doctors      Doctor[]
   appointments Appointment[]
-  Availability Availability[]
+   Availability Availability[]
+  organization   Organization?   @relation(fields: [organizationId], references: [id])
+  organizationId Int?
   createdAt    DateTime      @default(now())
   updatedAt    DateTime      @updatedAt
 }
@@ -73,19 +85,30 @@ model Patient {
   appointments Appointment[]
   createdAt    DateTime      @default(now())
   User         User?
+  organization   Organization? @relation(fields: [organizationId], references: [id])
+  organizationId Int?
   updatedAt    DateTime      @updatedAt
-
+  consultations ConsultationNote[]
+  prescriptions Prescription[]
+  documents     HealthDocument[]
+  familyAccount FamilyAccount? @relation("PrimaryPatient")
+  familyMember  FamilyMember?
 }
 
 model MedicalFile {
-  id         Int      @id @default(autoincrement())
-  patient    Patient  @relation(fields: [patientId], references: [id])
-  patientId  Int      @unique
-  allergies  String?
-  treatments String?
-  notes      String?
-  createdAt  DateTime @default(now())
-  updatedAt  DateTime @updatedAt
+  id                Int      @id @default(autoincrement())
+  patient           Patient  @relation(fields: [patientId], references: [id])
+  patientId         Int      @unique
+  bloodType         String?
+  allergies         String?
+  chronicConditions String?
+  emergencyContact  String?
+  treatments        String?
+  notes             String?
+  height            Float?
+  weight            Float?
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
 }
 
 model Availability {
@@ -110,12 +133,71 @@ model Appointment {
   end       DateTime
   status    String        @default("booked") // booked|done|cancelled|no_show 
 
-  source    String        @default("mobile") // mobile|web
-  createdAt DateTime      @default(now())
+  source    String           @default("mobile") // mobile|web
+  createdAt DateTime         @default(now())
+  notes     ConsultationNote[]
+  prescriptions Prescription[]
 
    @@index([start])
   @@index([status, start])
   @@index([doctorId, start])
+}
+
+model ConsultationNote {
+  id             Int      @id @default(autoincrement())
+  appointment    Appointment @relation(fields: [appointmentId], references: [id])
+  appointmentId  Int
+  patient        Patient     @relation(fields: [patientId], references: [id])
+  patientId      Int
+  doctor         Doctor      @relation(fields: [doctorId], references: [id])
+  doctorId       Int
+  chiefComplaint String
+  symptoms       String?
+  examination    String?
+  diagnosis      String
+  treatment      String?
+  notes          String?
+  vitalSigns     String? // JSON string
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+}
+
+model Prescription {
+  id            Int      @id @default(autoincrement())
+  patient       Patient  @relation(fields: [patientId], references: [id])
+  patientId     Int
+  doctor        Doctor   @relation(fields: [doctorId], references: [id])
+  doctorId      Int
+  appointment   Appointment? @relation(fields: [appointmentId], references: [id])
+  appointmentId Int?
+  diagnosis     String
+  notes         String?
+  validUntil    DateTime?
+  medications   PrescriptionMedication[]
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+}
+
+model PrescriptionMedication {
+  id               Int      @id @default(autoincrement())
+  prescription     Prescription @relation(fields: [prescriptionId], references: [id], onDelete: Cascade)
+  prescriptionId   Int
+  medicationName   String
+  dosage           String
+  frequency        String
+  duration         String
+  instructions     String?
+}
+
+model Notification {
+  id        Int      @id @default(autoincrement())
+  user      User     @relation(fields: [userId], references: [id])
+  userId    Int
+  type      String
+  title     String
+  message   String
+  read      Boolean  @default(false)
+  createdAt DateTime @default(now())
 }
 
 model DoctorDocument {
@@ -127,4 +209,251 @@ model DoctorDocument {
   issuedBy String?
   issuedAt DateTime?
   verified Boolean   @default(false)
+}
+
+model HealthDocument {
+  id          Int      @id @default(autoincrement())
+  patient     Patient  @relation(fields: [patientId], references: [id])
+  patientId   Int
+  uploader    User     @relation(fields: [uploadedBy], references: [id])
+  uploadedBy  Int
+  title       String
+  description String?
+  type        String // vaccination_card|growth_chart|lab_result|imaging|prescription|other
+  fileUrl     String
+  fileName    String
+  fileType    String
+  fileSize    Int
+  documentDate DateTime?
+  tags        String?
+  isShared    Boolean  @default(false)
+  sharedWith  String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
+model Medication {
+  id                   Int      @id @default(autoincrement())
+  name                 String
+  genericName          String?
+  category             String
+  form                 String
+  dosage               String
+  barcode              String?   @unique
+  dci                  String?
+  manufacturer         String?
+  requiresPrescription Boolean  @default(true)
+  unitPrice            Float?
+  description          String?
+  sideEffects          String?
+  contraindications    String?
+  isActive             Boolean  @default(true)
+  inventoryItems       InventoryItem[]
+  createdAt            DateTime @default(now())
+  updatedAt            DateTime @updatedAt
+}
+
+model InventoryItem {
+  id             Int      @id @default(autoincrement())
+  medication     Medication @relation(fields: [medicationId], references: [id])
+  medicationId   Int
+  organizationId Int // Link to practice site or org
+  quantity       Int      @default(0)
+  minQuantity    Int      @default(10)
+  maxQuantity    Int?
+  batchNumber    String?
+  expiryDate     DateTime?
+  location       String?
+  movements      StockMovement[]
+  alerts         StockAlert[]
+  updatedAt      DateTime @updatedAt
+}
+
+model StockMovement {
+  id               Int      @id @default(autoincrement())
+  inventoryItem    InventoryItem @relation(fields: [inventoryItemId], references: [id])
+  inventoryItemId  Int
+  type             String // in|out|adjustment|expired|damaged
+  quantity         Int
+  previousQuantity Int
+  newQuantity      Int
+  reason           String?
+  referenceType    String?
+  referenceId      Int?
+  notes            String?
+  user             User     @relation(fields: [userId], references: [id])
+  userId           Int
+  createdAt        DateTime @default(now())
+}
+
+model StockAlert {
+  id              Int      @id @default(autoincrement())
+  inventoryItem   InventoryItem @relation(fields: [inventoryItemId], references: [id])
+  inventoryItemId Int
+  type            String // low_stock|out_of_stock|expiring_soon|expired
+  severity        String // warning|critical
+  message         String
+  isResolved      Boolean  @default(false)
+  resolvedAt      DateTime?
+  resolver        User?    @relation(fields: [resolvedBy], references: [id])
+  resolvedBy      Int?
+  createdAt       DateTime @default(now())
+}
+
+model FamilyAccount {
+  id               Int      @id @default(autoincrement())
+  primaryPatient   Patient  @relation("PrimaryPatient", fields: [primaryPatientId], references: [id])
+  primaryPatientId Int      @unique
+  members          FamilyMember[]
+  createdAt        DateTime @default(now())
+}
+
+model FamilyMember {
+  id              Int      @id @default(autoincrement())
+  familyAccount   FamilyAccount @relation(fields: [familyAccountId], references: [id])
+  familyAccountId Int
+  patient         Patient  @relation(fields: [patientId], references: [id])
+  patientId       Int      @unique
+  relationship    String // parent|child|spouse|sibling|other
+  canBookFor      Boolean  @default(true)
+  canViewRecords  Boolean  @default(true)
+}
+
+model Organization {
+  id          Int      @id @default(autoincrement())
+  name        String
+  slug        String   @unique
+  type        String   // hopital|clinique|cabinet
+  region      String
+  city        String
+  address     String?
+  phone       String?
+  email       String?
+  isActive    Boolean  @default(true)
+  
+  users       User[]
+  doctors     Doctor[]
+  patients    Patient[]
+  practiceSites PracticeSite[]
+  
+  subscriptions Subscription[]
+  invoices      Invoice[]
+  
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
+model PricingPlan {
+  id                Int      @id @default(autoincrement())
+  name              String
+  slug              String   @unique
+  description       String?
+  monthlyPrice      Float
+  yearlyPrice       Float?
+  maxDoctors        Int?
+  maxPatients       Int?
+  maxAppointments   Int?
+  maxStorage        Int?
+  features          Json?
+  includesChat      Boolean  @default(false)
+  includesPharmacy  Boolean  @default(false)
+  includesTelemed   Boolean  @default(false)
+  includesAnalytics Boolean  @default(false)
+  isActive          Boolean  @default(true)
+  isPublic          Boolean  @default(true)
+  
+  subscriptions     Subscription[]
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+}
+
+model Subscription {
+  id                Int      @id @default(autoincrement())
+  organization      Organization @relation(fields: [organizationId], references: [id])
+  organizationId    Int
+  plan              PricingPlan @relation(fields: [planId], references: [id])
+  planId            Int
+  
+  billingCycle      String   // monthly|yearly
+  startDate         DateTime
+  endDate           DateTime
+  status            String   // trial|active|cancelled|suspended|expired
+  
+  isTrial           Boolean  @default(false)
+  trialEndsAt       DateTime?
+  autoRenew         Boolean  @default(true)
+  cancelledAt       DateTime?
+  cancelReason      String?
+  
+  invoices          Invoice[]
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+}
+
+model Invoice {
+  id                Int      @id @default(autoincrement())
+  invoiceNumber     String   @unique
+  organization      Organization @relation(fields: [organizationId], references: [id])
+  organizationId    Int
+  subscription      Subscription? @relation(fields: [subscriptionId], references: [id])
+  subscriptionId    Int?
+  appointmentId     Int?
+  
+  type              String   // subscription|consultation|service|other
+  status            String   @default("pending") // pending|paid|overdue|cancelled|refunded
+  
+  subtotal          Float
+  taxRate           Float    @default(0)
+  taxAmount         Float    @default(0)
+  discountAmount    Float    @default(0)
+  total             Float
+  
+  dueDate           DateTime
+  paidAt            DateTime?
+  notes             String?
+  
+  items             InvoiceItem[]
+  payments          Payment[]
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+}
+
+model InvoiceItem {
+  id            Int      @id @default(autoincrement())
+  invoice       Invoice  @relation(fields: [invoiceId], references: [id], onDelete: Cascade)
+  invoiceId     Int
+  description   String
+  quantity      Int      @default(1)
+  unitPrice     Float
+  amount        Float
+}
+
+model Payment {
+  id                Int      @id @default(autoincrement())
+  invoice           Invoice  @relation(fields: [invoiceId], references: [id])
+  invoiceId         Int
+  amount            Float
+  paymentMethod     String   // card|mobile_money|bank_transfer|cash|check
+  provider          String?  // wave|orange_money|free_money
+  transactionId     String?
+  status            String   @default("pending") // pending|completed|failed|refunded
+  paidAt            DateTime?
+  notes             String?
+  
+  refund            Refund?
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+}
+
+model Refund {
+  id                Int      @id @default(autoincrement())
+  payment           Payment  @relation(fields: [paymentId], references: [id])
+  paymentId         Int      @unique
+  amount            Float
+  reason            String
+  status            String   @default("pending") // pending|completed|failed
+  processedBy       Int?
+  processedAt       DateTime?
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
 }

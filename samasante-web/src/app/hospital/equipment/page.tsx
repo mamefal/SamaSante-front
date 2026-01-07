@@ -6,20 +6,18 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import {
     Monitor,
-    Activity,
     Wrench,
     Search,
     Plus,
     Filter,
     CheckCircle,
-    AlertTriangle,
     Calendar,
-    Settings,
     MoreHorizontal,
     Edit,
-    Trash2
+    Trash2,
+    Loader2
 } from "lucide-react"
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import {
     DropdownMenu,
     DropdownMenuContent,
@@ -28,64 +26,167 @@ import {
     DropdownMenuSeparator,
     DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
+import {
+    Dialog,
+    DialogContent,
+    DialogDescription,
+    DialogFooter,
+    DialogHeader,
+    DialogTitle,
+    DialogTrigger,
+} from "@/components/ui/dialog"
+import { Label } from "@/components/ui/label"
+import {
+    Select,
+    SelectContent,
+    SelectItem,
+    SelectTrigger,
+    SelectValue,
+} from "@/components/ui/select"
+import { api } from "@/lib/api"
+import { toast } from "sonner"
 
 export default function HospitalEquipment() {
     const [searchTerm, setSearchTerm] = useState("")
+    const [equipmentList, setEquipmentList] = useState<any[]>([])
+    const [loading, setLoading] = useState(true)
+    const [isAddOpen, setIsAddOpen] = useState(false)
+    const [isEditOpen, setIsEditOpen] = useState(false)
+    const [currentItem, setCurrentItem] = useState<any>(null)
 
-    const equipmentList = [
-        {
-            id: 1,
-            name: "Scanner IRM Philips Ingenia",
-            type: "Imagerie",
-            department: "Radiologie",
-            status: "En service",
-            lastMaintenance: "2024-10-15",
-            nextMaintenance: "2025-04-15",
-            serialNumber: "SN-2023-8842"
-        },
-        {
-            id: 2,
-            name: "Moniteur Multiparamétrique",
-            type: "Monitoring",
-            department: "Urgences",
-            status: "En maintenance",
-            lastMaintenance: "2024-11-01",
-            nextMaintenance: "2024-12-01",
-            serialNumber: "SN-2022-1105"
-        },
-        {
-            id: 3,
-            name: "Respirateur Artificiel",
-            type: "Réanimation",
-            department: "Soins Intensifs",
-            status: "En service",
-            lastMaintenance: "2024-09-20",
-            nextMaintenance: "2025-03-20",
-            serialNumber: "SN-2023-5591"
-        },
-        {
-            id: 4,
-            name: "Échographe Portable",
-            type: "Imagerie",
-            department: "Gynécologie",
-            status: "Hors service",
-            lastMaintenance: "2024-08-10",
-            nextMaintenance: "2024-11-30",
-            serialNumber: "SN-2021-3321"
+    // Form states
+    const [formData, setFormData] = useState({
+        name: "",
+        type: "",
+        department: "",
+        status: "operational",
+        serialNumber: "",
+        lastMaintenance: "",
+        nextMaintenance: ""
+    })
+
+    useEffect(() => {
+        fetchEquipment()
+    }, [])
+
+    const fetchEquipment = async () => {
+        try {
+            const res = await api.get("/equipment")
+            setEquipmentList(res.data)
+        } catch (error) {
+            console.error("Error fetching equipment:", error)
+            toast.error("Erreur lors du chargement des équipements")
+        } finally {
+            setLoading(false)
         }
-    ]
+    }
+
+    const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+        const { name, value } = e.target
+        setFormData(prev => ({ ...prev, [name]: value }))
+    }
+
+    const handleSelectChange = (name: string, value: string) => {
+        setFormData(prev => ({ ...prev, [name]: value }))
+    }
+
+    const handleSubmit = async (e: React.FormEvent) => {
+        e.preventDefault()
+        try {
+            // Format dates to ISO if present
+            const payload = {
+                ...formData,
+                lastMaintenance: formData.lastMaintenance ? new Date(formData.lastMaintenance).toISOString() : undefined,
+                nextMaintenance: formData.nextMaintenance ? new Date(formData.nextMaintenance).toISOString() : undefined
+            }
+
+            if (currentItem) {
+                await api.put(`/equipment/${currentItem.id}`, payload)
+                toast.success("Équipement modifié avec succès")
+            } else {
+                await api.post("/equipment", payload)
+                toast.success("Équipement ajouté avec succès")
+            }
+
+            setIsAddOpen(false)
+            setIsEditOpen(false)
+            setCurrentItem(null)
+            resetForm()
+            fetchEquipment()
+        } catch (error) {
+            console.error("Error saving equipment:", error)
+            toast.error("Erreur lors de l'enregistrement")
+        }
+    }
+
+    const handleDelete = async (id: number) => {
+        if (!confirm("Êtes-vous sûr de vouloir supprimer cet équipement ?")) return
+        try {
+            await api.delete(`/equipment/${id}`)
+            toast.success("Équipement supprimé")
+            fetchEquipment()
+        } catch (error) {
+            console.error("Error deleting equipment:", error)
+            toast.error("Erreur lors de la suppression")
+        }
+    }
+
+    const openEdit = (item: any) => {
+        setCurrentItem(item)
+        setFormData({
+            name: item.name,
+            type: item.type,
+            department: item.department || "",
+            status: item.status,
+            serialNumber: item.serialNumber || "",
+            lastMaintenance: item.lastMaintenance ? item.lastMaintenance.split('T')[0] : "",
+            nextMaintenance: item.nextMaintenance ? item.nextMaintenance.split('T')[0] : ""
+        })
+        setIsEditOpen(true)
+    }
+
+    const resetForm = () => {
+        setFormData({
+            name: "",
+            type: "",
+            department: "",
+            status: "operational",
+            serialNumber: "",
+            lastMaintenance: "",
+            nextMaintenance: ""
+        })
+    }
 
     const getStatusColor = (status: string) => {
         switch (status) {
-            case "En service":
+            case "operational":
                 return "bg-green-100 text-green-700 hover:bg-green-200 border-none"
-            case "En maintenance":
+            case "maintenance":
                 return "bg-orange-100 text-orange-700 hover:bg-orange-200 border-none animate-pulse"
-            case "Hors service":
+            case "broken":
                 return "bg-red-100 text-red-700 hover:bg-red-200 border-none"
             default:
                 return "bg-gray-100 text-gray-700 hover:bg-gray-200 border-none"
         }
+    }
+
+    const filteredList = equipmentList.filter(item =>
+        item.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        item.serialNumber?.toLowerCase().includes(searchTerm.toLowerCase())
+    )
+
+    const stats = {
+        total: equipmentList.length,
+        operational: equipmentList.filter(i => i.status === 'operational').length,
+        maintenance: equipmentList.filter(i => i.status === 'maintenance').length
+    }
+
+    if (loading) {
+        return (
+            <div className="flex items-center justify-center min-h-screen">
+                <Loader2 className="h-8 w-8 animate-spin text-blue-600" />
+            </div>
+        )
     }
 
     return (
@@ -98,10 +199,107 @@ export default function HospitalEquipment() {
                         Inventaire et suivi de maintenance
                     </p>
                 </div>
-                <Button className="bg-blue-600 hover:bg-blue-700 text-white shadow-sm">
-                    <Plus className="h-4 w-4 mr-2" />
-                    Ajouter un Équipement
-                </Button>
+                <Dialog open={isAddOpen} onOpenChange={(open) => { setIsAddOpen(open); if (!open) resetForm(); }}>
+                    <DialogTrigger asChild>
+                        <Button className="bg-blue-600 hover:bg-blue-700 text-white shadow-sm">
+                            <Plus className="h-4 w-4 mr-2" />
+                            Ajouter un Équipement
+                        </Button>
+                    </DialogTrigger>
+                    <DialogContent className="sm:max-w-[425px]">
+                        <DialogHeader>
+                            <DialogTitle>Ajouter un équipement</DialogTitle>
+                            <DialogDescription>
+                                Créez une nouvelle entrée dans l'inventaire.
+                            </DialogDescription>
+                        </DialogHeader>
+                        <form onSubmit={handleSubmit} className="grid gap-4 py-4">
+                            <div className="grid grid-cols-4 items-center gap-4">
+                                <Label htmlFor="name" className="text-right">Nom</Label>
+                                <Input id="name" name="name" value={formData.name} onChange={handleInputChange} className="col-span-3" required />
+                            </div>
+                            <div className="grid grid-cols-4 items-center gap-4">
+                                <Label htmlFor="type" className="text-right">Type</Label>
+                                <Input id="type" name="type" value={formData.type} onChange={handleInputChange} className="col-span-3" required />
+                            </div>
+                            <div className="grid grid-cols-4 items-center gap-4">
+                                <Label htmlFor="department" className="text-right">Département</Label>
+                                <Input id="department" name="department" value={formData.department} onChange={handleInputChange} className="col-span-3" />
+                            </div>
+                            <div className="grid grid-cols-4 items-center gap-4">
+                                <Label htmlFor="serialNumber" className="text-right">N° Série</Label>
+                                <Input id="serialNumber" name="serialNumber" value={formData.serialNumber} onChange={handleInputChange} className="col-span-3" />
+                            </div>
+                            <div className="grid grid-cols-4 items-center gap-4">
+                                <Label htmlFor="status" className="text-right">Statut</Label>
+                                <Select name="status" value={formData.status} onValueChange={(v) => handleSelectChange('status', v)}>
+                                    <SelectTrigger className="col-span-3">
+                                        <SelectValue placeholder="Sélectionner un statut" />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                        <SelectItem value="operational">Opérationnel</SelectItem>
+                                        <SelectItem value="maintenance">En maintenance</SelectItem>
+                                        <SelectItem value="broken">Hors service</SelectItem>
+                                    </SelectContent>
+                                </Select>
+                            </div>
+                        </form>
+                        <DialogFooter>
+                            <Button type="submit" onClick={handleSubmit}>Enregistrer</Button>
+                        </DialogFooter>
+                    </DialogContent>
+                </Dialog>
+
+                {/* Edit Dialog */}
+                <Dialog open={isEditOpen} onOpenChange={(open) => { setIsEditOpen(open); if (!open) { setCurrentItem(null); resetForm(); } }}>
+                    <DialogContent className="sm:max-w-[425px]">
+                        <DialogHeader>
+                            <DialogTitle>Modifier l'équipement</DialogTitle>
+                        </DialogHeader>
+                        <form onSubmit={handleSubmit} className="grid gap-4 py-4">
+                            <div className="grid grid-cols-4 items-center gap-4">
+                                <Label htmlFor="edit-name" className="text-right">Nom</Label>
+                                <Input id="edit-name" name="name" value={formData.name} onChange={handleInputChange} className="col-span-3" required />
+                            </div>
+                            <div className="grid grid-cols-4 items-center gap-4">
+                                <Label htmlFor="edit-type" className="text-right">Type</Label>
+                                <Input id="edit-type" name="type" value={formData.type} onChange={handleInputChange} className="col-span-3" required />
+                            </div>
+                            <div className="grid grid-cols-4 items-center gap-4">
+                                <Label htmlFor="edit-department" className="text-right">Département</Label>
+                                <Input id="edit-department" name="department" value={formData.department} onChange={handleInputChange} className="col-span-3" />
+                            </div>
+                            <div className="grid grid-cols-4 items-center gap-4">
+                                <Label htmlFor="edit-serialNumber" className="text-right">N° Série</Label>
+                                <Input id="edit-serialNumber" name="serialNumber" value={formData.serialNumber} onChange={handleInputChange} className="col-span-3" />
+                            </div>
+                            <div className="grid grid-cols-4 items-center gap-4">
+                                <Label htmlFor="edit-status" className="text-right">Statut</Label>
+                                <Select name="status" value={formData.status} onValueChange={(v) => handleSelectChange('status', v)}>
+                                    <SelectTrigger className="col-span-3">
+                                        <SelectValue placeholder="Sélectionner un statut" />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                        <SelectItem value="operational">Opérationnel</SelectItem>
+                                        <SelectItem value="maintenance">En maintenance</SelectItem>
+                                        <SelectItem value="broken">Hors service</SelectItem>
+                                    </SelectContent>
+                                </Select>
+                            </div>
+                            <div className="grid grid-cols-4 items-center gap-4">
+                                <Label htmlFor="edit-lastMaintenance" className="text-right">Dernière Maint.</Label>
+                                <Input type="date" id="edit-lastMaintenance" name="lastMaintenance" value={formData.lastMaintenance} onChange={handleInputChange} className="col-span-3" />
+                            </div>
+                            <div className="grid grid-cols-4 items-center gap-4">
+                                <Label htmlFor="edit-nextMaintenance" className="text-right">Prochaine Maint.</Label>
+                                <Input type="date" id="edit-nextMaintenance" name="nextMaintenance" value={formData.nextMaintenance} onChange={handleInputChange} className="col-span-3" />
+                            </div>
+                        </form>
+                        <DialogFooter>
+                            <Button type="submit" onClick={handleSubmit}>Mettre à jour</Button>
+                        </DialogFooter>
+                    </DialogContent>
+                </Dialog>
             </div>
 
             {/* Stats Grid */}
@@ -111,13 +309,12 @@ export default function HospitalEquipment() {
                         <div className="flex justify-between items-start">
                             <div>
                                 <p className="text-sm font-medium text-muted-foreground">Total Équipements</p>
-                                <h3 className="text-3xl font-bold mt-2">342</h3>
+                                <h3 className="text-3xl font-bold mt-2">{stats.total}</h3>
                             </div>
                             <div className="p-2 bg-blue-50 rounded-lg">
                                 <Monitor className="h-6 w-6 text-blue-600" />
                             </div>
                         </div>
-                        <p className="text-xs text-muted-foreground mt-4">Valeur totale: 1.2M €</p>
                     </CardContent>
                 </Card>
 
@@ -126,13 +323,12 @@ export default function HospitalEquipment() {
                         <div className="flex justify-between items-start">
                             <div>
                                 <p className="text-sm font-medium text-muted-foreground">En Service</p>
-                                <h3 className="text-3xl font-bold mt-2 text-green-600">318</h3>
+                                <h3 className="text-3xl font-bold mt-2 text-green-600">{stats.operational}</h3>
                             </div>
                             <div className="p-2 bg-green-50 rounded-lg">
                                 <CheckCircle className="h-6 w-6 text-green-600" />
                             </div>
                         </div>
-                        <p className="text-xs text-muted-foreground mt-4">93% opérationnels</p>
                     </CardContent>
                 </Card>
 
@@ -141,13 +337,12 @@ export default function HospitalEquipment() {
                         <div className="flex justify-between items-start">
                             <div>
                                 <p className="text-sm font-medium text-muted-foreground">En Maintenance</p>
-                                <h3 className="text-3xl font-bold mt-2 text-orange-600">24</h3>
+                                <h3 className="text-3xl font-bold mt-2 text-orange-600">{stats.maintenance}</h3>
                             </div>
                             <div className="p-2 bg-orange-50 rounded-lg">
                                 <Wrench className="h-6 w-6 text-orange-600" />
                             </div>
                         </div>
-                        <p className="text-xs text-muted-foreground mt-4">Dont 4 critiques</p>
                     </CardContent>
                 </Card>
             </div>
@@ -175,7 +370,7 @@ export default function HospitalEquipment() {
                 </CardHeader>
                 <CardContent className="p-0">
                     <div className="divide-y divide-gray-100">
-                        {equipmentList.map((item) => (
+                        {filteredList.map((item) => (
                             <div
                                 key={item.id}
                                 className="flex flex-col md:flex-row items-start md:items-center justify-between p-6 hover:bg-gray-50/80 transition-colors gap-4 group"
@@ -183,8 +378,8 @@ export default function HospitalEquipment() {
                                 <div className="flex items-center gap-4">
                                     <div className={`
                                         h-12 w-12 rounded-xl flex items-center justify-center shadow-sm border
-                                        ${item.status === 'En service' ? 'bg-green-50 border-green-100 text-green-600' :
-                                            item.status === 'En maintenance' ? 'bg-orange-50 border-orange-100 text-orange-600' :
+                                        ${item.status === 'operational' ? 'bg-green-50 border-green-100 text-green-600' :
+                                            item.status === 'maintenance' ? 'bg-orange-50 border-orange-100 text-orange-600' :
                                                 'bg-red-50 border-red-100 text-red-600'}
                                     `}>
                                         <Monitor className="h-6 w-6" />
@@ -209,7 +404,7 @@ export default function HospitalEquipment() {
                                             <Wrench className="h-3 w-3" /> Dernière maintenance
                                         </div>
                                         <span className="font-medium text-sm text-gray-900">
-                                            {new Date(item.lastMaintenance).toLocaleDateString('fr-FR')}
+                                            {item.lastMaintenance ? new Date(item.lastMaintenance).toLocaleDateString('fr-FR') : '-'}
                                         </span>
                                     </div>
 
@@ -217,13 +412,13 @@ export default function HospitalEquipment() {
                                         <div className="text-xs text-gray-500 flex items-center gap-1">
                                             <Calendar className="h-3 w-3" /> Prochaine
                                         </div>
-                                        <span className={`font-medium text-sm ${item.status === 'En maintenance' ? 'text-orange-600' : 'text-gray-900'}`}>
-                                            {new Date(item.nextMaintenance).toLocaleDateString('fr-FR')}
+                                        <span className={`font-medium text-sm ${item.status === 'maintenance' ? 'text-orange-600' : 'text-gray-900'}`}>
+                                            {item.nextMaintenance ? new Date(item.nextMaintenance).toLocaleDateString('fr-FR') : '-'}
                                         </span>
                                     </div>
 
                                     <Badge className={`${getStatusColor(item.status)} px-3 py-1`}>
-                                        {item.status}
+                                        {item.status === 'operational' ? 'En service' : item.status === 'maintenance' ? 'En maintenance' : 'Hors service'}
                                     </Badge>
 
                                     <DropdownMenu>
@@ -234,14 +429,14 @@ export default function HospitalEquipment() {
                                         </DropdownMenuTrigger>
                                         <DropdownMenuContent align="end">
                                             <DropdownMenuLabel>Actions</DropdownMenuLabel>
-                                            <DropdownMenuItem>
+                                            <DropdownMenuItem onClick={() => openEdit(item)}>
                                                 <Edit className="mr-2 h-4 w-4" /> Modifier
                                             </DropdownMenuItem>
                                             <DropdownMenuItem>
                                                 <Wrench className="mr-2 h-4 w-4" /> Planifier maintenance
                                             </DropdownMenuItem>
                                             <DropdownMenuSeparator />
-                                            <DropdownMenuItem className="text-red-600">
+                                            <DropdownMenuItem className="text-red-600" onClick={() => handleDelete(item.id)}>
                                                 <Trash2 className="mr-2 h-4 w-4" /> Supprimer
                                             </DropdownMenuItem>
                                         </DropdownMenuContent>

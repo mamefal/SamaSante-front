@@ -118,13 +118,34 @@ export default function DoctorCalendar() {
   })
 
   useEffect(() => {
-    fetchAppointments()
-  }, [])
+    const init = async () => {
+      if (doctorId) {
+        await Promise.all([fetchAppointments(), fetchAvailability()])
+      }
+      setLoading(false)
+    }
+    init()
+  }, [doctorId])
+
+  const fetchAvailability = async () => {
+    if (!doctorId) return
+
+    try {
+      const res = await api.get(`/doctors/${doctorId}/availability/settings`)
+      if (res.data && res.data.weeklySchedule) {
+        setWeeklySchedule(res.data.weeklySchedule)
+        if (res.data.consultationDuration) {
+          setSettings(prev => ({ ...prev, defaultDuration: res.data.consultationDuration }))
+        }
+      }
+    } catch (error) {
+      console.error("Error fetching availability:", error)
+    }
+  }
 
   const fetchAppointments = async () => {
     if (!doctorId) {
       toast.error("Profil médecin non trouvé")
-      setLoading(false)
       return
     }
 
@@ -134,8 +155,6 @@ export default function DoctorCalendar() {
     } catch (error) {
       console.error("Error fetching appointments:", error)
       toast.error("Erreur lors du chargement des rendez-vous")
-    } finally {
-      setLoading(false)
     }
   }
 
@@ -212,11 +231,22 @@ export default function DoctorCalendar() {
     toast.success(`Modèle "${template === "fulltime" ? "Temps plein" : "Matinées"}" appliqué`)
   }
 
-  const handleSaveSettings = () => {
-    toast.success("Paramètres sauvegardés", {
-      description: "Vos disponibilités ont été mises à jour",
-      icon: <Check className="h-4 w-4" />,
-    })
+  const handleSaveSettings = async () => {
+    if (!doctorId) return
+
+    try {
+      await api.post(`/doctors/${doctorId}/availability`, {
+        weeklySchedule,
+        consultationDuration: settings.defaultDuration
+      })
+      toast.success("Paramètres sauvegardés", {
+        description: "Vos disponibilités ont été mises à jour",
+        icon: <Check className="h-4 w-4" />,
+      })
+    } catch (error) {
+      console.error("Error saving settings:", error)
+      toast.error("Erreur lors de la sauvegarde")
+    }
   }
 
   const todayAppointments = appointments.filter(apt => {

@@ -17,64 +17,106 @@ const LoginSchema = z.object({
   password: z.string().min(6)
 }).strict()
 
-auth.post('/login',
-  // @ts-ignore
-  // rateLimiter({
-  //   windowMs: 15 * 60 * 1000, // 15 minutes
-  //   limit: 5, // Limit each IP to 5 requests per windowMs
-  //   standardHeaders: 'draft-6',
-  //   keyGenerator: (c) => c.req.header('x-forwarded-for') ?? 'unknown',
-  //   message: 'Too many login attempts, please try again after 15 minutes'
-  // }),
-  zValidator('json', LoginSchema),
-  async (c) => {
-    const { email, password } = c.req.valid('json')
+auth.post('/login', async (c) => {
+  try {
+    const body = await c.req.json();
+    const { email, password } = body;
 
-    const u = await prisma.user.findUnique({
+    if (!email || !password) {
+      return c.json({ message: 'Email et mot de passe requis' }, 400);
+    }
+
+    // Find user in database
+    const user = await prisma.user.findUnique({
       where: { email },
-      include: { doctor: true, patient: true }
-    })
-
-    if (!u) {
-      console.log('❌ Login failed: User not found for', email)
-      return c.text('Invalid credentials', 401)
-    }
-
-    // Vérifier le mot de passe avec await
-    const isPasswordValid = await compare(password, u.password)
-
-    if (!isPasswordValid) {
-      console.log('❌ Login failed: Invalid password for', email)
-      return c.text('Invalid credentials', 401)
-    }
-
-    console.log('✅ Login successful for:', email, '- Role:', u.role)
-
-    const token = await signJwt({
-      sub: u.id,
-      role: u.role,
-      doctorId: u.doctorId ?? null,
-      patientId: u.patientId ?? null
-    })
-
-    console.log('✅ JWT Token created:', token.substring(0, 30) + '...')
-
-    // Cookie pour développement HTTP (localhost)
-    // Secure ne fonctionne QUE sur HTTPS, pas sur HTTP localhost!
-    const cookieHeader = `token=${token}; Path=/; Max-Age=86400; SameSite=Lax`
-    c.header('Set-Cookie', cookieHeader)
-
-    console.log('✅ Set-Cookie header added')
-    console.log('   Value:', cookieHeader.substring(0, 60) + '...')
-
-    // Return user info only (token is in cookie)
-    return c.json({
-      user: {
-        id: u.id,
-        email: u.email,
-        role: u.role,
-        doctor: u.doctor,
-        patientId: u.patientId ?? null
+      include: {
+        doctor: {
+          select: {
+            id: true,
+            firstName: true,
+            lastName: true,
+          }
+        }
       }
-    })
-  })
+    });
+
+    if (!user) {
+      console.log(`❌ [LOGIN] User not found: ${email}`);
+      return c.json({ message: 'Identifiants invalides' }, 401);
+    }
+
+    // Verify password
+    const isPasswordValid = await compare(password, user.password);
+    if (!isPasswordValid) {
+      console.log(`❌ [LOGIN] Invalid password for: ${email}`);
+      return c.json({ message: 'Identifiants invalides' }, 401);
+    }
+
+    // Generate JWT token
+    const token = await signJwt({
+      sub: user.id,
+      role: user.role,
+      doctorId: user.doctor?.id || null,
+      patientId: user.patientId || null,
+    }, '7d'); // Token valid for 7 days
+
+    // Set secure HttpOnly cookie
+    const isProduction = process.env.NODE_ENV === 'production';
+
+    // In development, we need to set Domain to share cookie between ports
+    const cookieParts = [
+      `token=${token}`,
+      'Path=/',
+      'Max-Age=604800', // 7 days in seconds
+      'SameSite=Lax',
+      'HttpOnly', // Prevent JavaScript access
+    ];
+
+    // Add Secure flag only in production
+    if (isProduction) {
+      cookieParts.push('Secure');
+    }
+
+    const cookieOptions = cookieParts.join('; ');
+
+    c.header('Set-Cookie', cookieOptions);
+
+    console.log(`✅ [LOGIN] User authenticated: ${email}, Role: ${user.role}`);
+
+    // Return user info (without password)
+    const userData = {
+      id: user.id,
+      email: user.email,
+      role: user.role,
+      doctor: user.doctor,
+      patientId: user.patientId,
+    };
+
+    return c.json({ user: userData });
+  } catch (error) {
+    console.error('❌ [LOGIN] Error:', error);
+    return c.json({ message: 'Erreur lors de la connexion' }, 500);
+  }
+});
+
+// --- Logout ---
+auth.post('/logout', async (c) => {
+  try {
+    // Clear the token cookie
+    const cookieOptions = [
+      'token=',
+      'Path=/',
+      'Max-Age=0', // Expire immediately
+      'SameSite=Lax',
+      'HttpOnly',
+    ].join('; ');
+
+    c.header('Set-Cookie', cookieOptions);
+
+    console.log('✅ [LOGOUT] User logged out');
+    return c.json({ message: 'Déconnexion réussie' });
+  } catch (error) {
+    console.error('❌ [LOGOUT] Error:', error);
+    return c.json({ message: 'Erreur lors de la déconnexion' }, 500);
+  }
+});

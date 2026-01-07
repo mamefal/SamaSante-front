@@ -4,6 +4,8 @@ import { useState, useEffect } from "react"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
+import Link from "next/link"
+import { toast } from "sonner"
 import {
     Users,
     Calendar,
@@ -11,7 +13,6 @@ import {
     Star,
     Clock,
     Activity,
-    DollarSign,
     ArrowUpRight,
     Loader2,
 } from "lucide-react"
@@ -23,12 +24,16 @@ import {
     CartesianGrid,
     Tooltip,
     ResponsiveContainer,
+    BarChart,
+    Bar,
 } from "recharts"
 import { api } from "@/lib/api"
 import { getUser } from "@/lib/auth"
 
 type DashboardStats = {
     totalPatients: number
+    revenue: number
+    satisfaction: number
     todayAppointments: Array<{
         id: number
         patient: string
@@ -73,14 +78,14 @@ export default function DoctorDashboard() {
     }, [])
 
     // Mock data for charts (will be replaced with real data later)
-    const appointmentsTrend = [
-        { day: "Lun", appointments: 4 },
-        { day: "Mar", appointments: 6 },
-        { day: "Mer", appointments: 8 },
-        { day: "Jeu", appointments: 5 },
-        { day: "Ven", appointments: 9 },
-        { day: "Sam", appointments: 3 },
-        { day: "Dim", appointments: 1 },
+    const appointmentsTrend = dashboardStats?.weeklyAppointments || [
+        { day: "Lun", appointments: 0 },
+        { day: "Mar", appointments: 0 },
+        { day: "Mer", appointments: 0 },
+        { day: "Jeu", appointments: 0 },
+        { day: "Ven", appointments: 0 },
+        { day: "Sam", appointments: 0 },
+        { day: "Dim", appointments: 0 },
     ]
 
     const statsCards = [
@@ -90,7 +95,9 @@ export default function DoctorDashboard() {
             change: "+12%",
             trend: "up",
             icon: Users,
-            color: "from-blue-500 to-cyan-500",
+            borderClass: "border-l-blue-500",
+            iconBgClass: "bg-blue-500",
+            iconColorClass: "text-white",
         },
         {
             title: "RDV Aujourd'hui",
@@ -98,23 +105,20 @@ export default function DoctorDashboard() {
             change: "Planning chargé",
             trend: "up",
             icon: Calendar,
-            color: "from-cyan-500 to-teal-500",
+            borderClass: "border-l-cyan-500",
+            iconBgClass: "bg-cyan-500",
+            iconColorClass: "text-white",
         },
-        {
-            title: "Revenus (mois)",
-            value: "1.2M FCFA",
-            change: "+8%",
-            trend: "up",
-            icon: DollarSign,
-            color: "from-green-500 to-emerald-500",
-        },
+
         {
             title: "Satisfaction",
-            value: "4.9/5",
+            value: dashboardStats?.satisfaction ? `${dashboardStats.satisfaction}/5` : "N/A",
             change: "Top 5%",
             trend: "up",
             icon: Star,
-            color: "from-yellow-500 to-orange-500",
+            borderClass: "border-l-yellow-500",
+            iconBgClass: "bg-yellow-500",
+            iconColorClass: "text-white",
         },
     ]
 
@@ -139,27 +143,31 @@ export default function DoctorDashboard() {
                     </p>
                 </div>
                 <div className="flex gap-3">
-                    <Button variant="outline" className="shadow-sm hover:shadow-md transition-all">
-                        <Calendar className="mr-2 h-4 w-4" />
-                        Mon Agenda
-                    </Button>
-                    <Button className="bg-gradient-to-r from-blue-600 to-cyan-600 hover:from-blue-700 hover:to-cyan-700 shadow-lg hover:shadow-xl transition-all">
-                        <Users className="mr-2 h-4 w-4" />
-                        Nouveau Patient
-                    </Button>
+                    <Link href="/doctor/calendar">
+                        <Button variant="outline" className="shadow-sm hover:shadow-md transition-all">
+                            <Calendar className="mr-2 h-4 w-4" />
+                            Mon Agenda
+                        </Button>
+                    </Link>
+                    <Link href="/doctor/patients">
+                        <Button className="bg-gradient-to-r from-blue-600 to-cyan-600 hover:from-blue-700 hover:to-cyan-700 shadow-lg hover:shadow-xl transition-all">
+                            <Users className="mr-2 h-4 w-4" />
+                            Nouveau Patient
+                        </Button>
+                    </Link>
                 </div>
             </div>
 
             {/* Stats Cards */}
-            <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-4">
+            <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
                 {statsCards.map((stat, index) => (
-                    <Card key={index} className={`border-l-4 border-l-${stat.color.split(' ')[0].replace('from-', '')} shadow-md hover:shadow-lg transition-shadow`}>
+                    <Card key={index} className={`border-l-4 ${stat.borderClass} shadow-md hover:shadow-lg transition-shadow`}>
                         <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                             <CardTitle className="text-sm font-medium text-muted-foreground">
                                 {stat.title}
                             </CardTitle>
-                            <div className={`p-2 rounded-lg bg-gradient-to-br ${stat.color} bg-opacity-10`}>
-                                <stat.icon className="h-4 w-4 text-white" />
+                            <div className={`p-2 rounded-lg ${stat.iconBgClass}`}>
+                                <stat.icon className={`h-4 w-4 ${stat.iconColorClass}`} />
                             </div>
                         </CardHeader>
                         <CardContent>
@@ -191,7 +199,7 @@ export default function DoctorDashboard() {
                     <CardContent className="pl-2">
                         <div className="h-[350px]">
                             <ResponsiveContainer width="100%" height="100%">
-                                <AreaChart data={appointmentsTrend}>
+                                <AreaChart data={dashboardStats?.weeklyAppointments || []}>
                                     <defs>
                                         <linearGradient id="colorAppointments" x1="0" y1="0" x2="0" y2="1">
                                             <stop offset="5%" stopColor="#0ea5e9" stopOpacity={0.3} />
@@ -266,7 +274,14 @@ export default function DoctorDashboard() {
                 <CardHeader className="bg-gradient-to-r from-gray-50 to-gray-100 border-b">
                     <div className="flex items-center justify-between">
                         <CardTitle>Activité Récente</CardTitle>
-                        <Button variant="ghost" size="sm" className="text-blue-600 hover:text-blue-700 hover:bg-blue-50">
+
+
+                        <Button
+                            variant="ghost"
+                            size="sm"
+                            className="text-blue-600 hover:text-blue-700 hover:bg-blue-50"
+                            onClick={() => toast.info("Historique complet disponible prochainement", { description: "Cette page est en cours de développement." })}
+                        >
                             Voir tout <ArrowUpRight className="ml-2 h-4 w-4" />
                         </Button>
                     </div>

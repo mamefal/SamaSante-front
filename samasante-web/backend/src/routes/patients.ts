@@ -17,17 +17,32 @@ const CreatePatient = z.object({
 })
 
 patients.get('/',
-  requireAuth(['DOCTOR', 'ADMIN', 'SUPER_ADMIN']),
+  requireAuth(['DOCTOR', 'ADMIN', 'SUPER_ADMIN', 'HOSPITAL_ADMIN']),
   async (c) => {
+    const user = c.get('user') as any
     const q = c.req.query('q') || ''
+
+    const where: any = {
+      OR: [
+        { firstName: { contains: q } },
+        { lastName: { contains: q } },
+        { email: { contains: q } }
+      ]
+    }
+
+    // Si Hospital Admin, filtrer les patients qui ont des RDV avec les médecins de l'organisation
+    if (user.role === 'HOSPITAL_ADMIN' && user.organizationId) {
+      where.appointments = {
+        some: {
+          doctor: {
+            organizationId: user.organizationId
+          }
+        }
+      }
+    }
+
     const list = await prisma.patient.findMany({
-      where: {
-        OR: [
-          { firstName: { contains: q } },
-          { lastName: { contains: q } },
-          { email: { contains: q } }
-        ]
-      },
+      where,
       take: 50,
       orderBy: { id: 'desc' }
     })
@@ -51,5 +66,34 @@ patients.post('/',
       }
     })
     return c.json(p)
+  }
+)
+
+patients.get('/:id',
+  requireAuth(['DOCTOR', 'ADMIN', 'HOSPITAL_ADMIN']),
+  async (c) => {
+    const id = Number(c.req.param('id'))
+    const patient = await prisma.patient.findUnique({
+      where: { id },
+      include: {
+        medicalFile: true,
+        appointments: {
+          take: 5,
+          orderBy: { start: 'desc' },
+          include: {
+            doctor: {
+              select: {
+                firstName: true,
+                lastName: true,
+                specialty: true
+              }
+            }
+          }
+        }
+      }
+    })
+
+    if (!patient) return c.json({ error: 'Patient not found' }, 404)
+    return c.json(patient)
   }
 )

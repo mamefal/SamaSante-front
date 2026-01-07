@@ -39,8 +39,8 @@ async function main() {
                 role: 'PATIENT',
                 patient: {
                     create: {
-                        firstName: 'Jean',
-                        lastName: 'Dupont',
+                        firstName: 'daouda ',
+                        lastName: 'sarr',
                         dob: new Date('1990-01-15'),
                     }
                 }

@@ -5,7 +5,9 @@ import { Card, CardContent } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
-import { AppointmentBookingModal } from "@/components/appointment-booking-modal"
+import { api } from "@/lib/api"
+import { getUser } from "@/lib/auth"
+import AppointmentBookingModal from '@/components/appointment-booking-modal'
 import {
   Search,
   MapPin,
@@ -13,21 +15,21 @@ import {
   Phone,
   Clock,
   X,
-  Filter,
   Stethoscope,
   Calendar,
   DollarSign
 } from "lucide-react"
 
 interface Doctor {
-  id: string
-  speciality: string
-  consultation_fee: number
-  profiles: {
-    first_name: string
-    last_name: string
+  id: number
+  firstName: string
+  lastName: string
+  specialty: string
+  phonePublic: string | null
+  city: string | null
+  organization?: {
+    name: string
     city: string
-    phone: string
   }
 }
 
@@ -65,6 +67,8 @@ export default function SearchDoctors() {
   const locations = ["Dakar", "Pikine", "Guédiawaye", "Rufisque", "Thiès", "Kaolack", "Saint-Louis", "Ziguinchor"]
 
   useEffect(() => {
+    const user = getUser()
+    setCurrentUser(user)
     fetchDoctors()
   }, [])
 
@@ -74,8 +78,8 @@ export default function SearchDoctors() {
 
   const fetchDoctors = async () => {
     try {
-      const response = await fetch("/api/doctors")
-      const data = await response.json()
+      const response = await api.get("/doctors")
+      const data = Array.isArray(response.data) ? response.data : []
       setDoctors(data)
       setFilteredDoctors(data)
     } catch (error) {
@@ -91,18 +95,19 @@ export default function SearchDoctors() {
     if (searchTerm) {
       filtered = filtered.filter(
         (doctor) =>
-          `${doctor.profiles.first_name} ${doctor.profiles.last_name}`
+          `${doctor.firstName} ${doctor.lastName}`
             .toLowerCase()
-            .includes(searchTerm.toLowerCase()) || doctor.speciality.toLowerCase().includes(searchTerm.toLowerCase()),
+            .includes(searchTerm.toLowerCase()) || doctor.specialty.toLowerCase().includes(searchTerm.toLowerCase()),
       )
     }
 
     if (selectedSpecialty) {
-      filtered = filtered.filter((doctor) => doctor.speciality === selectedSpecialty)
+      filtered = filtered.filter((doctor) => doctor.specialty === selectedSpecialty)
     }
 
     if (selectedCity) {
-      filtered = filtered.filter((doctor) => doctor.profiles.city === selectedCity)
+      // Use organization city or fallback
+      filtered = filtered.filter((doctor) => (doctor.organization?.city || doctor.city) === selectedCity)
     }
 
     setFilteredDoctors(filtered)
@@ -111,9 +116,9 @@ export default function SearchDoctors() {
   const handleBookAppointment = (doctor: Doctor) => {
     setBookingModal({
       isOpen: true,
-      doctorId: doctor.id,
-      doctorName: `${doctor.profiles.first_name} ${doctor.profiles.last_name}`,
-      speciality: doctor.speciality,
+      doctorId: doctor.id.toString(),
+      doctorName: `${doctor.firstName} ${doctor.lastName}`,
+      speciality: doctor.specialty,
     })
   }
 
@@ -139,16 +144,16 @@ export default function SearchDoctors() {
 
   return (
     <div className="bg-gradient-to-br from-emerald-50 to-teal-50 min-h-screen">
-      <div className="p-8 space-y-8">
+      <section className="p-8 space-y-8" role="main" aria-label="Recherche de médecins">
         {/* Header */}
-        <div>
+        <header>
           <h1 className="text-4xl font-bold bg-gradient-to-r from-emerald-600 to-teal-600 bg-clip-text text-transparent">
             Rechercher un Médecin
           </h1>
           <p className="text-muted-foreground mt-2 text-lg">
             Trouvez le praticien adapté à vos besoins
           </p>
-        </div>
+        </header>
 
         {/* Search & Filters */}
         <Card className="shadow-md border-none">
@@ -240,8 +245,8 @@ export default function SearchDoctors() {
                   {/* Avatar */}
                   <div className="w-20 h-20 bg-gradient-to-br from-emerald-500 to-teal-600 rounded-full flex items-center justify-center shadow-md group-hover:scale-105 transition-transform flex-shrink-0">
                     <span className="text-2xl font-bold text-white">
-                      {doctor.profiles.first_name?.[0]}
-                      {doctor.profiles.last_name?.[0]}
+                      {doctor.firstName?.[0]}
+                      {doctor.lastName?.[0]}
                     </span>
                   </div>
 
@@ -250,12 +255,12 @@ export default function SearchDoctors() {
                     <div className="flex flex-col md:flex-row md:items-start md:justify-between gap-2">
                       <div>
                         <h3 className="text-xl font-bold text-gray-900">
-                          Dr. {doctor.profiles.first_name} {doctor.profiles.last_name}
+                          Dr. {doctor.firstName} {doctor.lastName}
                         </h3>
-                        <p className="text-emerald-600 font-semibold">{doctor.speciality}</p>
+                        <p className="text-emerald-600 font-semibold">{doctor.specialty}</p>
                         <div className="flex items-center text-sm text-gray-500 mt-1">
                           <MapPin className="h-4 w-4 mr-1 text-teal-500" />
-                          {doctor.profiles.city || "Dakar"}, Sénégal
+                          {doctor.organization?.city || doctor.city || "Dakar"}, Sénégal
                         </div>
                       </div>
 
@@ -268,7 +273,7 @@ export default function SearchDoctors() {
                         <div className="flex items-center text-gray-900">
                           <DollarSign className="h-4 w-4 text-emerald-600" />
                           <span className="text-lg font-bold">
-                            {doctor.consultation_fee?.toLocaleString() || "15,000"} FCFA
+                            15,000 FCFA
                           </span>
                         </div>
                       </div>
@@ -282,7 +287,7 @@ export default function SearchDoctors() {
                         </div>
                         <div className="flex items-center">
                           <Phone className="h-4 w-4 mr-1.5 text-blue-500" />
-                          <span>{doctor.profiles.phone}</span>
+                          <span>{doctor.phonePublic || "Non renseigné"}</span>
                         </div>
                       </div>
 
@@ -328,7 +333,7 @@ export default function SearchDoctors() {
           speciality={bookingModal.speciality}
           patientId={currentUser?.id || ""}
         />
-      </div>
-    </div>
+      </section>
+    </div >
   )
 }

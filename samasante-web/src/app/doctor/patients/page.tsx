@@ -1,13 +1,16 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { Card, CardContent } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { Input } from "@/components/ui/input"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog"
-import { Search, Eye, Calendar, Phone, Mail, MapPin, User, Activity, Clock, Users, UserCheck, CalendarClock, UserX } from "lucide-react"
+import { Search, Eye, Calendar, Phone, Mail, MapPin, User, Activity, Clock, Users, UserCheck, CalendarClock, UserX, Loader2 } from "lucide-react"
+import { api } from "@/lib/api"
+import { getDoctorId } from "@/lib/auth"
+import { toast } from "sonner"
 
 type Patient = {
   id: string
@@ -17,7 +20,7 @@ type Patient = {
   age: number
   gender: "male" | "female"
   city: string
-  lastVisit: string
+  lastVisit: string | null
   nextAppointment: string | null
   totalVisits: number
   status: "active" | "inactive"
@@ -29,8 +32,7 @@ type Patient = {
     date: string
     time: string
     type: string
-    status: "completed" | "upcoming" | "cancelled"
-    notes?: string
+    status: string
   }>
 }
 
@@ -41,157 +43,109 @@ export default function DoctorPatients() {
   const [selectedPatient, setSelectedPatient] = useState<Patient | null>(null)
   const [showRecordModal, setShowRecordModal] = useState(false)
   const [showAppointmentsModal, setShowAppointmentsModal] = useState(false)
+  const [patients, setPatients] = useState<Patient[]>([])
+  const [loading, setLoading] = useState(true)
 
-  // Mock patients data with extended information
-  const patients: Patient[] = [
-    {
-      id: "1",
-      name: "Fatou Ndiaye",
-      email: "fatou.ndiaye@email.com",
-      phone: "+221 77 123 45 67",
-      age: 28,
-      gender: "female",
-      city: "Dakar",
-      lastVisit: "2025-01-08T09:00:00Z",
-      nextAppointment: "2025-01-10T09:00:00Z",
-      totalVisits: 5,
-      status: "active",
-      conditions: ["Hypertension"],
-      bloodType: "A+",
-      allergies: ["Pénicilline"],
-      appointments: [
-        { id: "1", date: "2025-01-10", time: "09:00", type: "Consultation", status: "upcoming", notes: "Suivi hypertension" },
-        { id: "2", date: "2025-01-08", time: "09:00", type: "Consultation", status: "completed", notes: "Contrôle tension" },
-        { id: "3", date: "2024-12-15", time: "14:00", type: "Consultation", status: "completed" },
-      ],
-    },
-    {
-      id: "2",
-      name: "Moussa Ba",
-      email: "moussa.ba@email.com",
-      phone: "+221 76 234 56 78",
-      age: 45,
-      gender: "male",
-      city: "Thiès",
-      lastVisit: "2025-01-05T14:30:00Z",
-      nextAppointment: "2025-01-10T10:30:00Z",
-      totalVisits: 12,
-      status: "active",
-      conditions: ["Diabète", "Cholestérol"],
-      bloodType: "O+",
-      allergies: [],
-      appointments: [
-        { id: "4", date: "2025-01-10", time: "10:30", type: "Suivi", status: "upcoming", notes: "Contrôle glycémie" },
-        { id: "5", date: "2025-01-05", time: "14:30", type: "Consultation", status: "completed" },
-        { id: "6", date: "2024-12-20", time: "10:00", type: "Consultation", status: "completed" },
-      ],
-    },
-    {
-      id: "3",
-      name: "Awa Sarr",
-      email: "awa.sarr@email.com",
-      phone: "+221 78 345 67 89",
-      age: 32,
-      gender: "female",
-      city: "Saint-Louis",
-      lastVisit: "2024-12-20T16:00:00Z",
-      nextAppointment: "2025-01-10T14:00:00Z",
-      totalVisits: 3,
-      status: "active",
-      conditions: [],
-      bloodType: "B+",
-      allergies: ["Aspirine"],
-      appointments: [
-        { id: "7", date: "2025-01-10", time: "14:00", type: "Consultation", status: "upcoming" },
-        { id: "8", date: "2024-12-20", time: "16:00", type: "Consultation", status: "completed" },
-      ],
-    },
-    {
-      id: "4",
-      name: "Omar Diop",
-      email: "omar.diop@email.com",
-      phone: "+221 77 456 78 90",
-      age: 52,
-      gender: "male",
-      city: "Kaolack",
-      lastVisit: "2024-11-15T10:00:00Z",
-      nextAppointment: null,
-      totalVisits: 8,
-      status: "inactive",
-      conditions: ["Arthrite"],
-      bloodType: "AB+",
-      allergies: [],
-      appointments: [
-        { id: "9", date: "2024-11-15", time: "10:00", type: "Consultation", status: "completed" },
-        { id: "10", date: "2024-10-10", time: "09:00", type: "Suivi", status: "completed" },
-      ],
-    },
-  ]
+  useEffect(() => {
+    fetchPatients()
+  }, [])
 
-  // Filter patients based on search and filters
-  const filteredPatients = patients.filter((patient) => {
-    const matchesSearch =
-      searchQuery === "" ||
-      patient.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      patient.email.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      patient.phone.includes(searchQuery)
+  // ...
+  const fetchPatients = async () => {
+    const doctorId = getDoctorId()
+    if (!doctorId) {
+      toast.error("Session médecin introuvable", { description: "Veuillez vous reconnecter." })
+      setLoading(false)
+      return
+    }
 
-    const matchesStatus = statusFilter === "all" || patient.status === statusFilter
-
-    const matchesCity = cityFilter === "all" || patient.city.toLowerCase() === cityFilter.toLowerCase()
-
-    return matchesSearch && matchesStatus && matchesCity
-  })
-
-  const getStatusBadge = (status: string) => {
-    switch (status) {
-      case "active":
-        return (
-          <Badge variant="secondary" className="bg-green-100 text-green-800 hover:bg-green-200">
-            Actif
-          </Badge>
-        )
-      case "inactive":
-        return (
-          <Badge variant="secondary" className="bg-gray-100 text-gray-800 hover:bg-gray-200">
-            Inactif
-          </Badge>
-        )
-      default:
-        return <Badge variant="secondary">Inconnu</Badge>
+    try {
+      const response = await api.get(`/doctors/${doctorId}/patients`)
+      setPatients(response.data)
+    } catch (error) {
+      console.error("Error fetching patients:", error)
+      toast.error("Erreur lors du chargement des patients")
+    } finally {
+      setLoading(false)
     }
   }
 
-  const formatDate = (dateString: string) => {
-    return new Date(dateString).toLocaleDateString("fr-FR")
-  }
-
-
-  const getGenderIcon = (gender: string) => {
-    return gender === "female" ? "♀" : "♂"
-  }
-
-  const getAppointmentStatusBadge = (status: string) => {
-    switch (status) {
-      case "upcoming":
-        return <Badge className="bg-blue-100 text-blue-800 hover:bg-blue-200">À venir</Badge>
-      case "completed":
-        return <Badge className="bg-green-100 text-green-800 hover:bg-green-200">Terminé</Badge>
-      case "cancelled":
-        return <Badge className="bg-red-100 text-red-800 hover:bg-red-200">Annulé</Badge>
-      default:
-        return <Badge>Inconnu</Badge>
-    }
-  }
+  // ...
 
   const handleViewRecord = (patient: Patient) => {
+    toast.info(`Ouverture du dossier de ${patient.name}`)
     setSelectedPatient(patient)
     setShowRecordModal(true)
   }
 
   const handleViewAppointments = (patient: Patient) => {
+    toast.info(`Chargement des RDV de ${patient.name}`)
     setSelectedPatient(patient)
     setShowAppointmentsModal(true)
+  }
+
+  const filteredPatients = patients.filter(patient => {
+    const matchesSearch =
+      patient.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      patient.email?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      patient.phone?.includes(searchQuery)
+
+    const matchesStatus = statusFilter === 'all' || patient.status === statusFilter
+
+    const matchesCity = cityFilter === 'all' || patient.city?.toLowerCase() === cityFilter.toLowerCase()
+
+    return matchesSearch && matchesStatus && matchesCity
+  })
+
+  const getGenderIcon = (gender: string) => {
+    return gender === 'female' ? <User className="text-pink-500" /> : <User className="text-blue-500" />
+  }
+
+  const getStatusBadge = (status: string) => {
+    switch (status) {
+      case 'active':
+        return <Badge className="bg-green-100 text-green-700 hover:bg-green-200">Actif</Badge>
+      case 'inactive':
+        return <Badge className="bg-gray-100 text-gray-700 hover:bg-gray-200">Inactif</Badge>
+      default:
+        return <Badge variant="outline">{status}</Badge>
+    }
+  }
+
+  const formatDate = (dateString: string | null | undefined) => {
+    if (!dateString) return 'N/A'
+    try {
+      return new Date(dateString).toLocaleDateString('fr-FR', {
+        day: 'numeric',
+        month: 'short',
+        year: 'numeric'
+      })
+    } catch (e) {
+      return dateString
+    }
+  }
+
+  const getAppointmentStatusBadge = (status: string) => {
+    switch (status) { // booked|done|cancelled|no_show
+      case 'booked':
+        return <Badge className="bg-blue-100 text-blue-700">Prévu</Badge>
+      case 'done':
+        return <Badge className="bg-green-100 text-green-700">Terminé</Badge>
+      case 'cancelled':
+        return <Badge className="bg-red-100 text-red-700">Annulé</Badge>
+      case 'no_show':
+        return <Badge className="bg-orange-100 text-orange-700">Absent</Badge>
+      default:
+        return <Badge variant="outline">{status}</Badge>
+    }
+  }
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center min-h-screen">
+        <Loader2 className="h-8 w-8 animate-spin text-blue-600" />
+      </div>
+    )
   }
 
   return (
@@ -546,12 +500,6 @@ export default function DoctorPatients() {
                               </div>
                             </div>
                             <h4 className="font-bold text-lg text-gray-900">{appointment.type}</h4>
-                            {appointment.notes && (
-                              <div className="bg-gray-50 p-3 rounded-md text-sm text-gray-600 border border-gray-100">
-                                <span className="font-semibold text-gray-900">Notes: </span>
-                                {appointment.notes}
-                              </div>
-                            )}
                           </div>
                           <div className="flex items-start">
                             {getAppointmentStatusBadge(appointment.status)}

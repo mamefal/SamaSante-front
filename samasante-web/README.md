@@ -32,7 +32,7 @@
 
 Au Sénégal, l'accès aux soins peut être complexe. **SamaSanté** résout ces défis :
 
-| Problème | Solution SamaSanté |
+| Problème  | Solution SamaSanté |
 |----------|-------------------|
 | ❌ Files d'attente interminables | ✅ **Rendez-vous en ligne 24/7** |
 | ❌ Dossiers papiers perdus | ✅ **Dossier Médical Partagé (DMP) sécurisé** |

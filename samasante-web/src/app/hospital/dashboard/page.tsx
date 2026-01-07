@@ -75,6 +75,7 @@ export default function HospitalDashboard() {
     const [stats, setStats] = useState<DashboardStats | null>(null)
     const [loading, setLoading] = useState(true)
     const [appointments, setAppointments] = useState<any[]>([])
+    const [fullStats, setFullStats] = useState<any>(null)
 
     useEffect(() => {
         fetchDashboardData()
@@ -82,34 +83,25 @@ export default function HospitalDashboard() {
 
     const fetchDashboardData = async () => {
         try {
-            const [patientsRes, doctorsRes, appointmentsRes, departmentsRes] = await Promise.all([
-                api.get("/patients").catch(() => ({ data: [] })),
-                api.get("/doctors?organizationId=1").catch(() => ({ data: [] })),
-                api.get("/appointments").catch(() => ({ data: [] })),
-                api.get("/departments?organizationId=1").catch(() => ({ data: [] }))
+            const [statsRes, doctorsRes, departmentsRes] = await Promise.all([
+                api.get("/hospital-admins/stats").catch(() => ({ data: null })),
+                api.get("/doctors").catch(() => ({ data: [] })),
+                api.get("/departments").catch(() => ({ data: [] }))
             ])
 
-            const today = new Date()
-            today.setHours(0, 0, 0, 0)
-            const todayAppts = appointmentsRes.data.filter((apt: any) => {
-                const aptDate = new Date(apt.start)
-                aptDate.setHours(0, 0, 0, 0)
-                return aptDate.getTime() === today.getTime()
-            })
+            if (statsRes.data) {
+                const s = statsRes.data
+                setStats({
+                    totalPatients: s.totalPatients || 0,
+                    totalDoctors: doctorsRes.data.length,
+                    totalAppointments: s.todayAppointments + (s.monthlyStats || []).reduce((acc: number, curr: any) => acc + curr.appointments, 0),
+                    todayAppointments: s.todayAppointments,
+                    totalDepartments: departmentsRes.data.length,
+                    urgentCases: s.urgentCases || 0
+                })
+                setFullStats(s)
+            }
 
-            const urgentCases = appointmentsRes.data.filter((apt: any) =>
-                apt.status === 'urgent' || apt.motive?.toLowerCase().includes('urgent')
-            ).length
-
-            setStats({
-                totalPatients: patientsRes.data.length,
-                totalDoctors: doctorsRes.data.length,
-                totalAppointments: appointmentsRes.data.length,
-                todayAppointments: todayAppts.length,
-                totalDepartments: departmentsRes.data.length,
-                urgentCases: urgentCases
-            })
-            setAppointments(appointmentsRes.data.slice(0, 5)) // Get first 5 for list
         } catch (error) {
             console.error("Error fetching dashboard data:", error)
             toast.error("Erreur lors du chargement")
@@ -141,6 +133,26 @@ export default function HospitalDashboard() {
                     <CardContent className="p-6">
                         <div className="flex justify-between items-start">
                             <div>
+                                <p className="text-sm font-medium text-muted-foreground">Patients Total (Unique)</p>
+                                <h3 className="text-3xl font-bold mt-2">{stats?.totalPatients || 0}</h3>
+                            </div>
+                            <div className="p-2 bg-blue-50 rounded-lg">
+                                <Users className="h-6 w-6 text-blue-600" />
+                            </div>
+                        </div>
+                        <div className="mt-4 flex items-center text-sm">
+                            <span className="text-blue-600 flex items-center font-medium">
+                                <Activity className="h-4 w-4 mr-1" />
+                                Satisfaction: {fullStats?.satisfaction?.toFixed(1) || '4.8'}/5
+                            </span>
+                        </div>
+                    </CardContent>
+                </Card>
+
+                <Card className="bg-white shadow-sm hover:shadow-md transition-shadow border-none">
+                    <CardContent className="p-6">
+                        <div className="flex justify-between items-start">
+                            <div>
                                 <p className="text-sm font-medium text-muted-foreground">Nouveaux RDV</p>
                                 <h3 className="text-3xl font-bold mt-2">{stats?.todayAppointments || 0}</h3>
                             </div>
@@ -163,7 +175,7 @@ export default function HospitalDashboard() {
                         <div className="flex justify-between items-start">
                             <div>
                                 <p className="text-sm font-medium text-muted-foreground">Admissions</p>
-                                <h3 className="text-3xl font-bold mt-2">102</h3>
+                                <h3 className="text-3xl font-bold mt-2">{fullStats?.admissions || 0}</h3>
                             </div>
                             <div className="p-2 bg-indigo-50 rounded-lg">
                                 <LogIn className="h-6 w-6 text-indigo-600" />
@@ -184,7 +196,7 @@ export default function HospitalDashboard() {
                         <div className="flex justify-between items-start">
                             <div>
                                 <p className="text-sm font-medium text-muted-foreground">Sorties</p>
-                                <h3 className="text-3xl font-bold mt-2">33</h3>
+                                <h3 className="text-3xl font-bold mt-2">{fullStats?.discharges || 0}</h3>
                             </div>
                             <div className="p-2 bg-orange-50 rounded-lg">
                                 <LogOut className="h-6 w-6 text-orange-600" />
@@ -205,7 +217,7 @@ export default function HospitalDashboard() {
                         <div className="flex justify-between items-start">
                             <div>
                                 <p className="text-sm font-medium text-muted-foreground">Revenus Total</p>
-                                <h3 className="text-3xl font-bold mt-2">546k</h3>
+                                <h3 className="text-3xl font-bold mt-2">{(fullStats?.totalRevenue || 0).toLocaleString()} FCFA</h3>
                             </div>
                             <div className="p-2 bg-green-50 rounded-lg">
                                 <DollarSign className="h-6 w-6 text-green-600" />
@@ -233,7 +245,7 @@ export default function HospitalDashboard() {
                     <CardContent>
                         <div className="h-[300px] w-full">
                             <ResponsiveContainer width="100%" height="100%">
-                                <BarChart data={mockMonthlyData}>
+                                <BarChart data={fullStats?.monthlyStats || []}>
                                     <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#E5E7EB" />
                                     <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{ fill: '#6B7280' }} />
                                     <YAxis axisLine={false} tickLine={false} tick={{ fill: '#6B7280' }} />
@@ -259,7 +271,7 @@ export default function HospitalDashboard() {
                             <ResponsiveContainer width="100%" height="100%">
                                 <PieChart>
                                     <Pie
-                                        data={mockRoomStatus}
+                                        data={fullStats?.bookingSources || []}
                                         cx="50%"
                                         cy="50%"
                                         innerRadius={60}
@@ -267,26 +279,22 @@ export default function HospitalDashboard() {
                                         paddingAngle={5}
                                         dataKey="value"
                                     >
-                                        {mockRoomStatus.map((entry, index) => (
+                                        {(fullStats?.bookingSources || []).map((entry: any, index: number) => (
                                             <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
                                         ))}
                                     </Pie>
                                     <Tooltip />
                                 </PieChart>
                             </ResponsiveContainer>
-                            <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 text-center">
-                                <div className="text-2xl font-bold">1,253</div>
-                                <div className="text-xs text-muted-foreground">Total</div>
-                            </div>
                         </div>
                         <div className="mt-4 space-y-2">
-                            {mockRoomStatus.slice(0, 3).map((item, index) => (
+                            {(fullStats?.bookingSources || []).map((item: any, index: number) => (
                                 <div key={index} className="flex items-center justify-between text-sm">
                                     <div className="flex items-center gap-2">
                                         <div className="w-2 h-2 rounded-full" style={{ backgroundColor: COLORS[index % COLORS.length] }} />
                                         <span className="text-muted-foreground">{item.name}</span>
                                     </div>
-                                    <span className="font-medium">{item.value}%</span>
+                                    <span className="font-medium">{item.value}</span>
                                 </div>
                             ))}
                         </div>
@@ -294,8 +302,47 @@ export default function HospitalDashboard() {
                 </Card>
             </div>
 
-            {/* Charts Section 2 */}
+            {/* Charts Section 2 - Room Status */}
             <div className="grid gap-6 md:grid-cols-3">
+                <Card className="md:col-span-1 bg-white shadow-sm border-none">
+                    <CardHeader className="flex flex-row items-center justify-between">
+                        <CardTitle>Statut des Lits (Détail)</CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                        <div className="h-[200px] w-full relative">
+                            <ResponsiveContainer width="100%" height="100%">
+                                <PieChart>
+                                    <Pie
+                                        data={fullStats?.roomStatus || []}
+                                        cx="50%"
+                                        cy="50%"
+                                        innerRadius={60}
+                                        outerRadius={80}
+                                        paddingAngle={5}
+                                        dataKey="value"
+                                    >
+                                        {(fullStats?.roomStatus || []).map((entry: any, index: number) => (
+                                            <Cell key={`cell-${index}`} fill={COLORS[(index + 2) % COLORS.length]} />
+                                        ))}
+                                    </Pie>
+                                    <Tooltip />
+                                </PieChart>
+                            </ResponsiveContainer>
+                        </div>
+                        <div className="mt-4 space-y-2">
+                            {(fullStats?.roomStatus || []).map((item: any, index: number) => (
+                                <div key={index} className="flex items-center justify-between text-sm">
+                                    <div className="flex items-center gap-2">
+                                        <div className="w-2 h-2 rounded-full" style={{ backgroundColor: COLORS[(index + 2) % COLORS.length] }} />
+                                        <span className="text-muted-foreground">{item.name}</span>
+                                    </div>
+                                    <span className="font-medium">{item.value}</span>
+                                </div>
+                            ))}
+                        </div>
+                    </CardContent>
+                </Card>
+
                 {/* Revenue Line Chart */}
                 <Card className="md:col-span-2 bg-white shadow-sm border-none">
                     <CardHeader className="flex flex-row items-center justify-between">
@@ -305,7 +352,7 @@ export default function HospitalDashboard() {
                     <CardContent>
                         <div className="h-[300px] w-full">
                             <ResponsiveContainer width="100%" height="100%">
-                                <AreaChart data={mockMonthlyData}>
+                                <AreaChart data={fullStats?.monthlyStats || []}>
                                     <defs>
                                         <linearGradient id="colorRevenue" x1="0" y1="0" x2="0" y2="1">
                                             <stop offset="5%" stopColor="#3B82F6" stopOpacity={0.1} />

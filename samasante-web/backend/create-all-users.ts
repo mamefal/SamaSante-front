@@ -42,6 +42,20 @@ async function main() {
         // 2. Créer un DOCTEUR
         console.log('\n📝 Création du compte DOCTEUR...')
         const doctorHash = await bcrypt.hash(passwords.doctor, 10)
+
+        // Create or get organization first
+        const organization = await prisma.organization.upsert({
+            where: { slug: 'hopital-principal-dakar' },
+            update: {},
+            create: {
+                name: 'Hôpital Principal de Dakar',
+                slug: 'hopital-principal-dakar',
+                type: 'hopital',
+                region: 'Dakar',
+                city: 'Dakar',
+            }
+        })
+
         const doctor = await prisma.user.upsert({
             where: { email: 'doctor@test.com' },
             update: {
@@ -55,7 +69,8 @@ async function main() {
                     create: {
                         firstName: 'Dr. Marie',
                         lastName: 'Diop',
-                        specialization: 'Médecine Générale',
+                        specialty: 'Médecine Générale',
+                        organizationId: organization.id,
                     }
                 }
             },

@@ -61,14 +61,16 @@ const nextConfig = {
   // Allow dev access from network IP
   allowedDevOrigins: ['http://192.168.1.20:3001'],
 
-  // Optimize package imports for faster builds and smaller bundles
-  optimizePackageImports: ['lucide-react', '@/components/ui'],
 
   // Experimental features for better performance
   experimental: {
     // Enable optimistic client cache for faster navigation
     optimisticClientCache: true,
+    optimizePackageImports: ['lucide-react', '@/components/ui'],
   },
+
+  // Fix workspace root detection warning
+  outputFileTracingRoot: process.cwd(),
 };
 
 export default nextConfig;

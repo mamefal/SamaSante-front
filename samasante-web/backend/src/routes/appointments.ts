@@ -5,7 +5,7 @@ import { zValidator } from '@hono/zod-validator'
 import { prisma } from '../lib/prisma.js'
 import { requireAuth } from '../middlewares/auth.js'
 import { getDailySlots, isBookable } from '../lib/slots.js'
-
+import { notificationManager } from '../lib/notifications/index.js'
 
 
 import type { HonoEnv } from '../types/env.js'
@@ -13,25 +13,43 @@ import type { HonoEnv } from '../types/env.js'
 export const appointments = new Hono<HonoEnv>()
 
 // --- 0) Lister tous les RDV (Super Admin) ---
+// --- 0) Lister tous les RDV (Super Admin & Hospital Admin) ---
 appointments.get('/',
-  requireAuth(['SUPER_ADMIN']),
+  requireAuth(['SUPER_ADMIN', 'HOSPITAL_ADMIN', 'ADMIN']),
   async (c) => {
+    const user = c.get('user') as any
+    const where: any = {}
+
+    // Si Hospital Admin, filtrer par organisation via les médecins
+    if ((user.role === 'HOSPITAL_ADMIN' || user.role === 'ADMIN') && user.organizationId) {
+      where.doctor = {
+        organizationId: user.organizationId
+      }
+    }
+
     const list = await prisma.appointment.findMany({
+      where,
       take: 50,
       orderBy: { start: 'desc' },
       include: {
         doctor: {
-          select: { firstName: true, lastName: true }
+          select: { firstName: true, lastName: true, specialty: true }
         },
         patient: {
-          select: { firstName: true, lastName: true }
+          select: { firstName: true, lastName: true, phone: true }
         },
         site: {
           select: { name: true }
         }
       }
     })
-    return c.json(list)
+
+    // Mapper pour correspondre à l'interface frontend
+    return c.json(list.map(apt => ({
+      ...apt,
+      dateTime: apt.start, // Frontend attend dateTime
+      reason: apt.motive
+    })))
   }
 )
 
@@ -79,7 +97,7 @@ const CreateAppointment = z.object({
 })
 
 appointments.post('/',
-  requireAuth(['ADMIN', 'DOCTOR']),
+  requireAuth(['ADMIN', 'DOCTOR', 'PATIENT']),
   zValidator('json', CreateAppointment),
   async (c) => {
     const b = c.req.valid('json')
@@ -119,11 +137,41 @@ appointments.post('/',
         end: new Date(b.end),
         source: 'web',
         status: 'booked'
+      },
+      include: {
+        patient: true,
+        doctor: true,
+        site: true
       }
     })
+
+    // 🔔 Send appointment confirmation notification
+    try {
+      await notificationManager.sendAppointmentConfirmation({
+        patientId: appt.patientId,
+        doctorId: appt.doctorId,
+        appointmentId: appt.id,
+        appointmentDate: appt.start,
+        location: appt.site?.name || 'À confirmer'
+      })
+
+      // Schedule reminder for 24h before
+      await notificationManager.scheduleAppointmentReminder({
+        patientId: appt.patientId,
+        doctorId: appt.doctorId,
+        appointmentId: appt.id,
+        appointmentDate: appt.start,
+        location: appt.site?.name || 'À confirmer'
+      })
+    } catch (error) {
+      // Don't fail the appointment creation if notification fails
+      console.error('Failed to send appointment notification:', error)
+    }
+
     return c.json(appt)
   }
 )
+
 
 // -------------------------
 // 2) Lister les RDV d’un médecin

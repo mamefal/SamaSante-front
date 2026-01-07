@@ -25,9 +25,11 @@ import {
   Trash2,
   HelpCircle,
   Shield,
-  Edit
+  Edit,
+  Download
 } from "lucide-react"
 import { toast } from "sonner"
+import { generateGDPRDocumentsPDF } from "@/lib/pdf-generator"
 
 export default function PatientProfile() {
   // Mock user data
@@ -63,6 +65,21 @@ export default function PatientProfile() {
     if (confirm("Êtes-vous sûr de vouloir supprimer votre compte ? Cette action est irréversible.")) {
       toast.error("Suppression du compte annulée")
     }
+  }
+
+  const handleExportRGPD = () => {
+    generateGDPRDocumentsPDF({
+      patientName: `${profile.first_name} ${profile.last_name}`,
+      date: new Date().toISOString(),
+      requestType: 'portability',
+      dataSummary: {
+        profile,
+        preferences,
+        exportedAt: new Date().toISOString(),
+        platform: "AMINA / SamaSanté"
+      }
+    })
+    toast.success("Document RGPD généré avec succès")
   }
 
   return (
@@ -316,6 +333,34 @@ export default function PatientProfile() {
                       <SelectItem value="ar">Arabe</SelectItem>
                     </SelectContent>
                   </Select>
+                </div>
+              </CardContent>
+            </Card>
+
+            {/* RGPD Section */}
+            <Card className="border-l-4 border-l-blue-600 shadow-md">
+              <CardHeader>
+                <CardTitle className="text-lg flex items-center">
+                  <Shield className="h-5 w-5 mr-2 text-blue-600" />
+                  RGPD & Confidentialité
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <p className="text-xs text-gray-500">
+                  Conformément au RGPD et à la loi sénégalaise, vous avez un contrôle total sur vos données.
+                </p>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="w-full text-blue-600 border-blue-200 hover:bg-blue-50"
+                  onClick={handleExportRGPD}
+                >
+                  <Download className="h-4 w-4 mr-2" />
+                  Exporter mes données (Portabilité)
+                </Button>
+                <div className="flex items-center gap-2 text-[10px] text-gray-400">
+                  <AlertCircle className="h-3 w-3" />
+                  Vos données sont cryptées de bout en bout.
                 </div>
               </CardContent>
             </Card>

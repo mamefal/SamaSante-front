@@ -1,10 +1,9 @@
-
 // src/app/monitoring/layout.tsx
 import { Metadata } from "next"
 
-export const metadata: Metadata = {
-    title: "Monitoring - SamaSanté",
-    description: "Dashboard de monitoring système",
+export const metadata = {
+    title: "Monitoring - AMINA",
+    description: "Monitoring système",
 }
 
 export default function MonitoringLayout({

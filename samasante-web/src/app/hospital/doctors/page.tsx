@@ -61,6 +61,7 @@ export default function HospitalDoctors() {
         firstName: "",
         lastName: "",
         specialty: "",
+        ordreNumber: "",
         phonePublic: "",
         emailPublic: "",
         departmentId: ""
@@ -73,8 +74,8 @@ export default function HospitalDoctors() {
     const fetchData = async () => {
         try {
             const [doctorsRes, deptsRes] = await Promise.all([
-                api.get("/doctors?organizationId=1"),
-                api.get("/departments?organizationId=1")
+                api.get("/doctors"),
+                api.get("/departments")
             ])
             setDoctors(doctorsRes.data)
             setDepartments(deptsRes.data)
@@ -98,7 +99,6 @@ export default function HospitalDoctors() {
             } else {
                 await api.post("/doctors", {
                     ...formData,
-                    organizationId: 1,
                     departmentId: formData.departmentId ? Number(formData.departmentId) : null,
                     status: "verified"
                 })
@@ -132,6 +132,7 @@ export default function HospitalDoctors() {
             firstName: doctor.firstName,
             lastName: doctor.lastName,
             specialty: doctor.specialty,
+            ordreNumber: (doctor as any).ordreNumber || "",
             phonePublic: doctor.phonePublic || "",
             emailPublic: doctor.emailPublic || "",
             departmentId: doctor.department?.id.toString() || ""
@@ -145,6 +146,7 @@ export default function HospitalDoctors() {
             firstName: "",
             lastName: "",
             specialty: "",
+            ordreNumber: "",
             phonePublic: "",
             emailPublic: "",
             departmentId: ""
@@ -154,7 +156,8 @@ export default function HospitalDoctors() {
     const filteredDoctors = doctors.filter(doc =>
         doc.firstName.toLowerCase().includes(searchTerm.toLowerCase()) ||
         doc.lastName.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        doc.specialty.toLowerCase().includes(searchTerm.toLowerCase())
+        doc.specialty.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        ((doc as any).ordreNumber && (doc as any).ordreNumber.includes(searchTerm))
     )
 
     if (loading) {
@@ -215,16 +218,28 @@ export default function HospitalDoctors() {
                                 </div>
                             </div>
 
-                            <div className="space-y-2">
-                                <Label htmlFor="specialty">Spécialité</Label>
-                                <Input
-                                    id="specialty"
-                                    value={formData.specialty}
-                                    onChange={(e) => setFormData({ ...formData, specialty: e.target.value })}
-                                    placeholder="Ex: Cardiologie, Pédiatrie..."
-                                    required
-                                    className="h-11"
-                                />
+                            <div className="grid grid-cols-2 gap-4">
+                                <div className="space-y-2">
+                                    <Label htmlFor="specialty">Spécialité</Label>
+                                    <Input
+                                        id="specialty"
+                                        value={formData.specialty}
+                                        onChange={(e) => setFormData({ ...formData, specialty: e.target.value })}
+                                        placeholder="Ex: Cardiologie"
+                                        required
+                                        className="h-11"
+                                    />
+                                </div>
+                                <div className="space-y-2">
+                                    <Label htmlFor="ordreNumber">Numéro d'Ordre</Label>
+                                    <Input
+                                        id="ordreNumber"
+                                        value={formData.ordreNumber}
+                                        onChange={(e) => setFormData({ ...formData, ordreNumber: e.target.value })}
+                                        placeholder="Ex: 12345/A"
+                                        className="h-11"
+                                    />
+                                </div>
                             </div>
 
                             <div className="space-y-2">
@@ -375,6 +390,11 @@ export default function HospitalDoctors() {
                                                 <Badge variant="outline" className="bg-blue-50 text-blue-700 border-blue-100 font-normal">
                                                     {doctor.specialty}
                                                 </Badge>
+                                                {(doctor as any).ordreNumber && (
+                                                    <Badge variant="outline" className="bg-gray-50 text-gray-600 border-gray-200 font-normal">
+                                                        Ordre: {(doctor as any).ordreNumber}
+                                                    </Badge>
+                                                )}
                                                 {doctor.department && (
                                                     <span className="flex items-center gap-1 text-gray-400">
                                                         <span>•</span>

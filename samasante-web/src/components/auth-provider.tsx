@@ -8,7 +8,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
     useEffect(() => {
         const handleUnauthorized = () => {
-            localStorage.removeItem("token")
+            localStorage.removeItem("amina:user")
+            localStorage.removeItem("amina:token") // Legacy cleanup
             router.push("/auth/login")
         }
 

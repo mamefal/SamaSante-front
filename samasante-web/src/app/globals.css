@@ -1,150 +1,96 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+
 @import "tailwindcss";
 @import "tw-animate-css";
 
 @custom-variant dark (&:is(.dark *));
 
 :root {
-  /* Clean Modern Design - No Gradients */
+  /* AMINA Official Color Palette - Enhanced Contrast */
+  /* Based on brand guidelines: #1b385a (Navy Blue), #00ab85 (Turquoise), #808080 (Gray) */
 
-  /* Base Colors */
-  --background: oklch(1 0 0);
-  /* Pure white */
-  --foreground: oklch(0.15 0.01 258);
-  /* Almost black */
+  /* Background - Clean White */
+  --background: oklch(0.99 0 0);
+  --foreground: oklch(0.25 0.02 240);
+  /* Darker for better contrast */
 
-  /* Cards & Surfaces */
-  --card: oklch(1 0 0);
-  /* White */
-  --card-foreground: oklch(0.15 0.01 258);
-  --popover: oklch(1 0 0);
-  --popover-foreground: oklch(0.15 0.01 258);
-
-  /* Primary - Clean Blue */
-  --primary: oklch(0.55 0.22 250);
-  /* Blue 600 */
+  /* Primary - AMINA Navy Blue (#1b385a) */
+  --primary: oklch(0.28 0.08 240);
   --primary-foreground: oklch(1 0 0);
 
-  /* Secondary - Clean Teal */
-  --secondary: oklch(0.55 0.15 200);
-  /* Teal 600 */
+  /* Secondary - AMINA Turquoise (#00ab85) - More vibrant */
+  --secondary: oklch(0.62 0.16 170);
   --secondary-foreground: oklch(1 0 0);
 
-  /* Accent - Clean Purple */
-  --accent: oklch(0.5 0.2 280);
-  /* Purple 600 */
+  /* Accent - Turquoise for highlights and interactive elements */
+  --accent: oklch(0.62 0.16 170);
+  /* Same as secondary for consistency */
   --accent-foreground: oklch(1 0 0);
 
-  /* Muted */
-  --muted: oklch(0.97 0.005 258);
-  /* Very light gray */
-  --muted-foreground: oklch(0.45 0.01 258);
-  /* Medium gray */
+  /* Card */
+  --card: oklch(1 0 0);
+  --card-foreground: oklch(0.25 0.02 240);
+
+  /* Popover */
+  --popover: oklch(1 0 0);
+  --popover-foreground: oklch(0.25 0.02 240);
+
+  /* Muted - Darker gray for better contrast (#666666 instead of #808080) */
+  --muted: oklch(0.92 0.005 240);
+  /* Light background */
+  --muted-foreground: oklch(0.42 0.01 240);
+  /* Darker text - much better contrast */
 
   /* Destructive */
   --destructive: oklch(0.55 0.22 25);
-  /* Red 600 */
   --destructive-foreground: oklch(1 0 0);
 
-  /* Success */
-  --success: oklch(0.6 0.18 145);
-  /* Green 600 */
-  --success-foreground: oklch(1 0 0);
+  /* Borders & Inputs - More visible */
+  --border: oklch(0.88 0.01 240);
+  --input: oklch(0.96 0.01 240);
+  --ring: oklch(0.62 0.16 170);
+  /* Turquoise ring for focus states */
 
-  /* Warning */
-  --warning: oklch(0.65 0.18 85);
-  /* Amber 600 */
-  --warning-foreground: oklch(0.15 0.01 258);
-
-  /* Borders & Inputs */
-  --border: oklch(0.9 0.005 258);
-  /* Light border */
-  --input: oklch(0.98 0.005 258);
-  /* Very light input bg */
-  --ring: oklch(0.55 0.22 250);
-  /* Blue focus ring */
-
-  /* Chart Colors - Solid */
-  --chart-1: oklch(0.55 0.22 250);
-  /* Blue */
-  --chart-2: oklch(0.6 0.18 145);
-  /* Green */
-  --chart-3: oklch(0.5 0.2 280);
-  /* Purple */
-  --chart-4: oklch(0.65 0.18 85);
-  /* Amber */
-  --chart-5: oklch(0.55 0.22 25);
-  /* Red */
-
-  /* Radius */
-  --radius: 0.5rem;
-  /* 8px - Clean */
-
-  /* Sidebar */
-  --sidebar: oklch(0.98 0.005 258);
-  --sidebar-foreground: oklch(0.15 0.01 258);
-  --sidebar-primary: oklch(0.55 0.22 250);
-  --sidebar-primary-foreground: oklch(1 0 0);
-  --sidebar-accent: oklch(0.97 0.005 258);
-  --sidebar-accent-foreground: oklch(0.15 0.01 258);
-  --sidebar-border: oklch(0.9 0.005 258);
-  --sidebar-ring: oklch(0.55 0.22 250);
+  --radius: 0.75rem;
 }
 
 .dark {
-  /* Dark Mode - Clean */
-  --background: oklch(0.1 0.01 258);
-  /* Dark */
-  --foreground: oklch(0.98 0.005 258);
-  /* Almost white */
+  /* Dark Mode with AMINA Colors - Enhanced */
+  --background: oklch(0.15 0.03 240);
+  --foreground: oklch(0.98 0.01 0);
 
-  --card: oklch(0.13 0.01 258);
-  /* Slightly lighter */
-  --card-foreground: oklch(0.98 0.005 258);
-  --popover: oklch(0.13 0.01 258);
-  --popover-foreground: oklch(0.98 0.005 258);
+  /* Glass Cards */
+  --card: oklch(0.22 0.04 240 / 0.5);
+  --card-foreground: oklch(0.98 0.01 0);
 
-  --primary: oklch(0.6 0.22 250);
-  /* Brighter blue */
+  --popover: oklch(0.18 0.04 240 / 0.9);
+  --popover-foreground: oklch(0.98 0.01 0);
+
+  /* Primary - Lighter Navy for dark mode */
+  --primary: oklch(0.35 0.1 240);
   --primary-foreground: oklch(1 0 0);
 
-  --secondary: oklch(0.6 0.15 200);
-  /* Brighter teal */
-  --secondary-foreground: oklch(1 0 0);
+  /* Secondary - Vibrant Turquoise for dark mode */
+  --secondary: oklch(0.65 0.16 170);
+  --secondary-foreground: oklch(0.15 0.03 240);
 
-  --accent: oklch(0.6 0.2 280);
-  /* Brighter purple */
-  --accent-foreground: oklch(1 0 0);
+  /* Accent - Turquoise */
+  --accent: oklch(0.65 0.16 170);
+  --accent-foreground: oklch(0.15 0.03 240);
 
-  --muted: oklch(0.18 0.01 258);
-  --muted-foreground: oklch(0.6 0.005 258);
+  /* Muted - Better contrast */
+  --muted: oklch(0.28 0.02 240);
+  --muted-foreground: oklch(0.7 0.02 0);
 
-  --destructive: oklch(0.6 0.22 25);
+  /* Destructive */
+  --destructive: oklch(0.6 0.2 25);
   --destructive-foreground: oklch(1 0 0);
 
-  --success: oklch(0.65 0.18 145);
-  --success-foreground: oklch(1 0 0);
-
-  --warning: oklch(0.7 0.18 85);
-  --warning-foreground: oklch(0.1 0.01 258);
-
-  --border: oklch(0.2 0.01 258);
-  --input: oklch(0.18 0.01 258);
-  --ring: oklch(0.6 0.22 250);
-
-  --chart-1: oklch(0.6 0.22 250);
-  --chart-2: oklch(0.65 0.18 145);
-  --chart-3: oklch(0.6 0.2 280);
-  --chart-4: oklch(0.7 0.18 85);
-  --chart-5: oklch(0.6 0.22 25);
-
-  --sidebar: oklch(0.13 0.01 258);
-  --sidebar-foreground: oklch(0.98 0.005 258);
-  --sidebar-primary: oklch(0.6 0.22 250);
-  --sidebar-primary-foreground: oklch(1 0 0);
-  --sidebar-accent: oklch(0.18 0.01 258);
-  --sidebar-accent-foreground: oklch(0.98 0.005 258);
-  --sidebar-border: oklch(0.2 0.01 258);
-  --sidebar-ring: oklch(0.6 0.22 250);
+  /* Borders - More visible */
+  --border: oklch(0.35 0.05 240);
+  --input: oklch(0.25 0.05 240);
+  --ring: oklch(0.65 0.16 170);
+  /* Turquoise ring */
 }
 
 @theme inline {
@@ -169,24 +115,11 @@
   --color-border: var(--border);
   --color-input: var(--input);
   --color-ring: var(--ring);
-  --color-chart-1: var(--chart-1);
-  --color-chart-2: var(--chart-2);
-  --color-chart-3: var(--chart-3);
-  --color-chart-4: var(--chart-4);
-  --color-chart-5: var(--chart-5);
   --radius-sm: calc(var(--radius) - 2px);
   --radius-md: var(--radius);
   --radius-lg: calc(var(--radius) + 2px);
   --radius-xl: calc(var(--radius) + 4px);
   --radius-2xl: calc(var(--radius) + 8px);
-  --color-sidebar: var(--sidebar);
-  --color-sidebar-foreground: var(--sidebar-foreground);
-  --color-sidebar-primary: var(--sidebar-primary);
-  --color-sidebar-primary-foreground: var(--sidebar-primary-foreground);
-  --color-sidebar-accent: var(--sidebar-accent);
-  --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
-  --color-sidebar-border: var(--sidebar-border);
-  --color-sidebar-ring: var(--sidebar-ring);
 }
 
 @layer base {
@@ -196,55 +129,102 @@
 
   body {
     @apply bg-background text-foreground antialiased;
-  }
-
-  html {
-    scroll-behavior: smooth;
-  }
-
-  ::selection {
-    @apply bg-primary/20 text-foreground;
+    font-family: 'Inter', sans-serif;
   }
 }
 
 @layer utilities {
-
-  /* Card hover effect */
-  .card-hover {
-    @apply transition-all duration-200 hover:shadow-lg hover:-translate-y-0.5;
+  .glass {
+    @apply bg-white/10 backdrop-blur-md border border-white/20 shadow-xl;
   }
 
-  /* Button animations */
+  .glass-card {
+    background: linear-gradient(135deg, rgba(255, 255, 255, 0.1), rgba(255, 255, 255, 0.05));
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+    border: 1px solid rgba(255, 255, 255, 0.18);
+    box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.37);
+  }
+
+  .glass-input {
+    @apply bg-white/5 border-white/10 text-white placeholder:text-white/50 focus:bg-white/10 focus:border-white/30 transition-all;
+  }
+
+  /* AMINA Gradient Background */
+  .bg-amina-gradient {
+    background: linear-gradient(135deg, #1b385a 0%, #00ab85 100%);
+  }
+
+  /* Alternative: Medical/Health themed background */
+  .bg-amina-field {
+    background-image: url('https://images.unsplash.com/photo-1576091160399-112ba8d25d1d?q=80&w=2070&auto=format&fit=crop');
+    background-size: cover;
+    background-position: center;
+  }
+
+  /* AMINA Accent Classes */
+  .border-amina-primary {
+    border-color: #1b385a;
+  }
+
+  .border-amina-secondary {
+    border-color: #00ab85;
+  }
+
+  .text-amina-primary {
+    color: #1b385a;
+  }
+
+  .text-amina-secondary {
+    color: #00ab85;
+  }
+
+  .bg-amina-primary {
+    background-color: #1b385a;
+  }
+
+  .bg-amina-secondary {
+    background-color: #00ab85;
+  }
+
+  /* AMINA Badges - High Contrast */
+  .badge-success {
+    @apply bg-secondary/10 text-secondary border border-secondary/30 font-semibold;
+  }
+
+  .badge-warning {
+    @apply bg-amber-500/10 text-amber-700 border border-amber-500/30 font-semibold;
+  }
+
+  .badge-error {
+    @apply bg-destructive/10 text-destructive border border-destructive/30 font-semibold;
+  }
+
+  .badge-info {
+    @apply bg-primary/10 text-primary border border-primary/30 font-semibold;
+  }
+
+  /* Card with AMINA accent border */
+  .card-amina {
+    @apply border-l-4 border-l-secondary bg-card;
+  }
+
+  .card-amina-primary {
+    @apply border-l-4 border-l-primary bg-card;
+  }
+
   .btn-scale {
     @apply transition-transform duration-150 active:scale-95;
   }
 
-  /* Fade in animation */
   .fade-in {
-    animation: fadeIn 0.4s ease-in;
+    animation: fadeIn 0.5s ease-out;
   }
 
   @keyframes fadeIn {
     from {
       opacity: 0;
-      transform: translateY(8px);
-    }
-
-    to {
-      opacity: 1;
-      transform: translateY(0);
-    }
-  }
-
-  /* Slide up animation */
-  .slide-up {
-    animation: slideUp 0.4s ease-out;
-  }
-
-  @keyframes slideUp {
-    from {
-      opacity: 0;
-      transform: translateY(20px);
+      transform: translateY(10px);
     }
 
     to {

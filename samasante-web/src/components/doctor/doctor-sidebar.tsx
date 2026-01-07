@@ -10,7 +10,6 @@ import {
   FileText,
   FlaskConical,
   Activity,
-  Settings,
   LogOut,
   Stethoscope
 } from "lucide-react"
@@ -32,7 +31,6 @@ const navigation: NavItem[] = [
   { name: "Ordonnances", href: "/doctor/prescriptions", icon: FileText },
   { name: "Analyses", href: "/doctor/lab-orders", icon: FlaskConical },
   { name: "Certificats", href: "/doctor/certificates", icon: Stethoscope },
-  { name: "Paramètres", href: "/doctor/settings", icon: Settings },
 ]
 
 export function DoctorSidebar() {

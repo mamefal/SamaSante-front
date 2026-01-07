@@ -8,6 +8,7 @@ import { Badge } from "@/components/ui/badge"
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog"
 import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Plus, Users, Edit, Trash2, Building2, Stethoscope, Activity, Loader2, MoreHorizontal } from "lucide-react"
 import { api } from "@/lib/api"
 import { toast } from "sonner"
@@ -15,7 +16,6 @@ import {
     DropdownMenu,
     DropdownMenuContent,
     DropdownMenuItem,
-    DropdownMenuLabel,
     DropdownMenuSeparator,
     DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
@@ -30,28 +30,40 @@ interface Department {
     }
 }
 
+interface Doctor {
+    id: number
+    firstName: string
+    lastName: string
+    specialty: string
+}
+
 export default function HospitalDepartments() {
     const [departments, setDepartments] = useState<Department[]>([])
+    const [doctors, setDoctors] = useState<Doctor[]>([])
     const [loading, setLoading] = useState(true)
     const [isDialogOpen, setIsDialogOpen] = useState(false)
     const [editingDept, setEditingDept] = useState<Department | null>(null)
     const [formData, setFormData] = useState({
         name: "",
-        description: ""
+        description: "",
+        headDoctorId: ""
     })
 
     useEffect(() => {
-        fetchDepartments()
+        fetchData()
     }, [])
 
-    const fetchDepartments = async () => {
+    const fetchData = async () => {
         try {
-            // In production, get organizationId from auth context
-            const res = await api.get("/departments?organizationId=1")
-            setDepartments(res.data)
+            const [deptsRes, doctorsRes] = await Promise.all([
+                api.get("/departments"),
+                api.get("/doctors")
+            ])
+            setDepartments(deptsRes.data)
+            setDoctors(doctorsRes.data)
         } catch (error) {
-            console.error("Error fetching departments:", error)
-            toast.error("Erreur lors du chargement des départements")
+            console.error("Error fetching data:", error)
+            toast.error("Erreur lors du chargement des données")
         } finally {
             setLoading(false)
         }
@@ -60,17 +72,21 @@ export default function HospitalDepartments() {
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault()
         try {
+            const payload = {
+                ...formData,
+                headDoctorId: formData.headDoctorId ? parseInt(formData.headDoctorId) : null
+            }
+
             if (editingDept) {
-                await api.put(`/departments/${editingDept.id}`, formData)
+                await api.put(`/departments/${editingDept.id}`, payload)
                 toast.success("Département modifié")
             } else {
-                await api.post("/departments", { ...formData, organizationId: 1 })
-                toast.success("Département créé")
+                await api.post("/departments", payload)
             }
             setIsDialogOpen(false)
-            setFormData({ name: "", description: "" })
+            setFormData({ name: "", description: "", headDoctorId: "" })
             setEditingDept(null)
-            fetchDepartments()
+            fetchData()
         } catch (error) {
             console.error("Error saving department:", error)
             toast.error("Erreur lors de l'enregistrement")
@@ -83,7 +99,7 @@ export default function HospitalDepartments() {
         try {
             await api.delete(`/departments/${id}`)
             toast.success("Département supprimé")
-            fetchDepartments()
+            fetchData()
         } catch (error) {
             console.error("Error deleting department:", error)
             toast.error("Erreur lors de la suppression")
@@ -94,14 +110,15 @@ export default function HospitalDepartments() {
         setEditingDept(dept)
         setFormData({
             name: dept.name,
-            description: dept.description || ""
+            description: dept.description || "",
+            headDoctorId: dept.headDoctorId?.toString() || ""
         })
         setIsDialogOpen(true)
     }
 
     const openCreateDialog = () => {
         setEditingDept(null)
-        setFormData({ name: "", description: "" })
+        setFormData({ name: "", description: "", headDoctorId: "" })
         setIsDialogOpen(true)
     }
 
@@ -150,6 +167,24 @@ export default function HospitalDepartments() {
                                     required
                                     className="h-11"
                                 />
+                            </div>
+                            <div className="space-y-2">
+                                <Label htmlFor="headDoctor" className="text-sm font-medium">Chef de service</Label>
+                                <Select
+                                    value={formData.headDoctorId}
+                                    onValueChange={(value) => setFormData({ ...formData, headDoctorId: value })}
+                                >
+                                    <SelectTrigger className="h-11">
+                                        <SelectValue placeholder="Sélectionner un médecin" />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                        {doctors.map((doc) => (
+                                            <SelectItem key={doc.id} value={doc.id.toString()}>
+                                                Dr. {doc.firstName} {doc.lastName} ({doc.specialty})
+                                            </SelectItem>
+                                        ))}
+                                    </SelectContent>
+                                </Select>
                             </div>
                             <div className="space-y-2">
                                 <Label htmlFor="description" className="text-sm font-medium">Description</Label>

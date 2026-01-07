@@ -173,7 +173,11 @@ export async function getActivityMetrics(): Promise<ActivityMetrics> {
     return {
         appointmentsLast7Days: appointmentsByDate,
         usersLast7Days: usersByDate,
-        activeUsers: 0, // TODO: Implement active users tracking
+        // Utilisateurs actifs : ceux créés au cours des dernières 5 minutes (exemple simple)
+        activeUsers: users.filter((u) => {
+            const fiveMinutesAgo = new Date(Date.now() - 5 * 60 * 1000)
+            return u.createdAt >= fiveMinutesAgo
+        }).length,
     }
 }
 

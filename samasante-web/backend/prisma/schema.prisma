@@ -29,12 +29,33 @@ model User {
   organization   Organization? @relation(fields: [organizationId], references: [id])
 
   createdAt DateTime @default(now())
+  lastSeenAt DateTime? @default(now())
   notifications Notification[]
   refreshTokens RefreshToken[]
   auditLogs AuditLog[]
   twoFactorSecret TwoFactorSecret?
   modificationHistory ModificationHistory[]
   documentSignatures DocumentSignature[]
+  
+  // Chat relations
+  conversationParticipants ConversationParticipant[]
+  messages Message[]
+  
+  // Stock management relations
+  stockMovements StockMovement[]
+  resolvedAlerts StockAlert[]
+  
+  // i18n
+  languagePreference UserLanguagePreference?
+  
+  // Patient Portal
+  uploadedHealthDocuments HealthDocument[]
+  
+  // Billing
+  processedRefunds Refund[]
+
+  // Sharing
+  sharedMedicalFiles MedicalFileSharing[]
 
   @@index([email])
   @@index([role])
@@ -68,6 +89,9 @@ model Doctor {
   createdAt      DateTime         @default(now())
   verifiedAt     DateTime?
   User           User[]
+  emergencies    Emergency[]
+  ratings        DoctorRating[]
+  settings       Json?            // User preferences (notifications, calendar, privacy, etc.)
 
   @@index([organizationId])
   @@index([specialty])
@@ -92,6 +116,7 @@ model Patient {
   firstName      String
   lastName       String
   dob            DateTime
+  gender         String        @default("not_specified") // male|female|other|not_specified
   phone          String?
   email          String?
   organizationId Int?
@@ -106,16 +131,72 @@ model Patient {
   documents      PatientDocument[]
   createdAt      DateTime      @default(now())
   User           User?
+  
+  // Advanced Patient Portal
+  primaryFamilyAccount FamilyAccount? @relation("PrimaryFamilyAccount")
+  familyMembership     FamilyMember?
+  vaccinationRecords   VaccinationRecord[]
+  growthRecords        GrowthRecord[]
+  healthMetrics        HealthMetric[]
+  admissions           Admission[]
+  ratings              DoctorRating[]
+  healthDocuments      HealthDocument[]
 }
 
 model MedicalFile {
-  id         Int      @id @default(autoincrement())
-  patient    Patient  @relation(fields: [patientId], references: [id])
-  patientId  Int      @unique
-  allergies  String?
-  treatments String?
-  notes      String?
-  updatedAt  DateTime @updatedAt
+  id                Int      @id @default(autoincrement())
+  patient           Patient  @relation(fields: [patientId], references: [id])
+  patientId         Int      @unique
+  bloodType         String?
+  allergies         String?
+  chronicConditions String?
+  emergencyContact  String?
+  treatments        String?
+  notes             String?
+  updatedAt         DateTime @updatedAt
+  
+  sharing           MedicalFileSharing[]
+}
+
+model MedicalFileSharing {
+  id                Int      @id @default(autoincrement())
+  medicalFile       MedicalFile @relation(fields: [medicalFileId], references: [id])
+  medicalFileId     Int
+  
+  organization      Organization @relation(fields: [organizationId], references: [id])
+  organizationId    Int
+  
+  sharedByUserId    Int
+  user              User     @relation(fields: [sharedByUserId], references: [id])
+  
+  canView           Boolean  @default(true)
+  canEdit           Boolean  @default(false)
+  expiresAt         DateTime?
+  
+  createdAt         DateTime @default(now())
+  
+  @@unique([medicalFileId, organizationId])
+}
+
+model Equipment {
+  id              Int       @id @default(autoincrement())
+  name            String
+  type            String
+  serialNumber    String?
+  status          String    @default("operational") // operational|maintenance|broken
+  
+  department      String?   // Keeping it simple as string for now to match UI, or could be relation
+  
+  organizationId  Int
+  organization    Organization @relation(fields: [organizationId], references: [id])
+  
+  lastMaintenance DateTime?
+  nextMaintenance DateTime?
+  
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+
+  @@index([organizationId])
 }
 
 model Availability {
@@ -144,6 +225,9 @@ model Appointment {
   prescriptions     Prescription[]
   labOrders         LabOrder[]
   consultationNote  ConsultationNote?
+  conversations     Conversation[]  // Post-consultation chat
+  invoices          Invoice[]       // Billing
+  rating            DoctorRating?
   
   createdAt DateTime      @default(now())
 
@@ -188,6 +272,26 @@ model Organization {
   updatedAt DateTime  @updatedAt
   
   departments Department[]
+  equipment   Equipment[]
+  emergencies Emergency[]
+  inventoryItems InventoryItem[]  // Pharmacy stock
+  
+  // Sharing
+  receivedMedicalFiles MedicalFileSharing[]
+
+  // Bed Management
+  rooms             Room[]
+  admissions        Admission[]
+  
+  // Pharmacy
+  suppliers         Supplier[]
+  purchaseOrders    PurchaseOrder[]
+
+  // Billing
+  subscriptions    Subscription[]
+  invoices         Invoice[]
+  paymentMethods   PaymentMethod[]
+  billingHistory   BillingHistory[]
 }
 
 model Department {
@@ -200,6 +304,7 @@ model Department {
   organization   Organization @relation(fields: [organizationId], references: [id])
   
   doctors     Doctor[]
+  rooms       Room[]
   
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
@@ -234,6 +339,10 @@ model PrescriptionMedication {
   frequency      String
   duration       String
   instructions   String?
+  
+  // Link to pharmacy inventory (optional)
+  medicationId   Int?
+  medication     Medication?  @relation("MedicationToPrescription", fields: [medicationId], references: [id])
 }
 
 model LabOrder {
@@ -422,3 +531,999 @@ model DocumentSignature {
   @@index([userId])
   @@index([signedAt])
 }
+
+model Emergency {
+  id             Int      @id @default(autoincrement())
+  patientName    String
+  age            Int
+  gender         String
+  condition      String
+  severity       String   // Critique, Urgent, Stable
+  triage         String   // Rouge, Orange, Jaune, Vert
+  status         String   // En attente, En traitement, Terminé
+  arrivalTime    DateTime @default(now())
+  
+  doctorId       Int?
+  doctor         Doctor?  @relation(fields: [doctorId], references: [id])
+  
+  organizationId Int
+  organization   Organization @relation(fields: [organizationId], references: [id])
+  
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  @@index([organizationId])
+  @@index([status])
+  @@index([severity])
+}
+
+// ============================================
+// CHAT & MESSAGING SYSTEM
+// ============================================
+
+model Conversation {
+  id             Int      @id @default(autoincrement())
+  type           String   // direct|group|consultation
+  title          String?  // Pour les conversations de groupe
+  
+  // Participants (relation many-to-many via ConversationParticipant)
+  participants   ConversationParticipant[]
+  messages       Message[]
+  
+  // Métadonnées
+  lastMessageAt  DateTime? @default(now())
+  isArchived     Boolean   @default(false)
+  
+  // Lié à une consultation (optionnel)
+  appointmentId  Int?
+  appointment    Appointment? @relation(fields: [appointmentId], references: [id])
+  
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+  
+  @@index([type])
+  @@index([lastMessageAt])
+  @@index([appointmentId])
+}
+
+model ConversationParticipant {
+  id             Int      @id @default(autoincrement())
+  
+  conversationId Int
+  conversation   Conversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+  
+  userId         Int
+  user           User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  // Métadonnées du participant
+  role           String?  // admin|member (pour les groupes)
+  lastReadAt     DateTime? // Dernier message lu
+  isMuted        Boolean  @default(false)
+  
+  joinedAt       DateTime @default(now())
+  
+  @@unique([conversationId, userId])
+  @@index([userId])
+  @@index([conversationId])
+}
+
+model Message {
+  id             Int      @id @default(autoincrement())
+  
+  conversationId Int
+  conversation   Conversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+  
+  senderId       Int
+  sender         User     @relation(fields: [senderId], references: [id])
+  
+  content        String   // Texte du message
+  type           String   @default("text") // text|image|file|system
+  
+  // Métadonnées
+  isEdited       Boolean  @default(false)
+  isDeleted      Boolean  @default(false)
+  
+  // Pièces jointes
+  attachments    MessageAttachment[]
+  
+  // Réponse à un message (threading)
+  replyToId      Int?
+  replyTo        Message? @relation("MessageReplies", fields: [replyToId], references: [id])
+  replies        Message[] @relation("MessageReplies")
+  
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+  
+  @@index([conversationId])
+  @@index([senderId])
+  @@index([createdAt])
+}
+
+model MessageAttachment {
+  id             Int      @id @default(autoincrement())
+  
+  messageId      Int
+  message        Message  @relation(fields: [messageId], references: [id], onDelete: Cascade)
+  
+  fileName       String
+  fileUrl        String
+  fileType       String   // image/jpeg, application/pdf, etc.
+  fileSize       Int      // en bytes
+  
+  // Métadonnées pour images
+  thumbnailUrl   String?
+  width          Int?
+  height         Int?
+  
+  createdAt      DateTime @default(now())
+  
+  @@index([messageId])
+}
+
+// ============================================
+// PHARMACY & STOCK MANAGEMENT
+// ============================================
+
+model Medication {
+  id                Int      @id @default(autoincrement())
+  
+  // Informations du médicament
+  name              String
+  genericName       String?
+  category          String   // antibiotique|antalgique|antihypertenseur|etc
+  form              String   // comprimé|sirop|injection|etc
+  dosage            String   // 500mg, 10ml, etc
+  
+  // Identification
+  barcode           String?  @unique
+  dci               String?  // Dénomination Commune Internationale
+  
+  // Fabricant
+  manufacturer      String?
+  
+  // Prescription
+  requiresPrescription Boolean @default(true)
+  
+  // Prix
+  unitPrice         Float?   // Prix unitaire en FCFA
+  
+  // Relations
+  inventoryItems    InventoryItem[]
+  prescriptionLinks PrescriptionMedication[] @relation("MedicationToPrescription")
+  
+  // Métadonnées
+  description       String?
+  sideEffects       String?  // Effets secondaires
+  contraindications String?  // Contre-indications
+  
+  isActive          Boolean  @default(true)
+  
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+  
+  @@index([name])
+  @@index([category])
+  @@index([barcode])
+}
+
+model InventoryItem {
+  id                Int      @id @default(autoincrement())
+  
+  medicationId      Int
+  medication        Medication @relation(fields: [medicationId], references: [id])
+  
+  organizationId    Int
+  organization      Organization @relation(fields: [organizationId], references: [id])
+  
+  // Stock
+  quantity          Int      @default(0)
+  minQuantity       Int      @default(10)  // Seuil d'alerte
+  maxQuantity       Int?     // Stock maximum
+  
+  // Lot
+  batchNumber       String?
+  expiryDate        DateTime?
+  
+  // Localisation dans la pharmacie
+  location          String?  // Étagère A1, Frigo 2, etc
+  
+  // Mouvements de stock
+  movements         StockMovement[]
+  
+  // Alertes
+  alerts            StockAlert[]
+  
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+  
+  supplierId        Int?
+  supplier          Supplier? @relation(fields: [supplierId], references: [id])
+  
+  @@unique([medicationId, organizationId, batchNumber])
+  @@index([organizationId])
+  @@index([medicationId])
+  @@index([expiryDate])
+}
+
+model StockMovement {
+  id                Int      @id @default(autoincrement())
+  
+  inventoryItemId   Int
+  inventoryItem     InventoryItem @relation(fields: [inventoryItemId], references: [id])
+  
+  type              String   // in|out|adjustment|expired|damaged
+  quantity          Int      // Positif pour entrée, négatif pour sortie
+  
+  // Avant/Après
+  previousQuantity  Int
+  newQuantity       Int
+  
+  // Raison
+  reason            String?  // Achat, Vente, Péremption, Casse, Ajustement inventaire
+  
+  // Référence (prescription, commande, etc.)
+  referenceType     String?  // prescription|order|adjustment
+  referenceId       Int?
+  
+  // Utilisateur qui a effectué le mouvement
+  userId            Int?
+  user              User?    @relation(fields: [userId], references: [id])
+  
+  // Métadonnées
+  notes             String?
+  
+  createdAt         DateTime @default(now())
+  
+  @@index([inventoryItemId])
+  @@index([type])
+  @@index([createdAt])
+}
+
+model StockAlert {
+  id                Int      @id @default(autoincrement())
+  
+  inventoryItemId   Int
+  inventoryItem     InventoryItem @relation(fields: [inventoryItemId], references: [id])
+  
+  type              String   // low_stock|expiring_soon|expired|out_of_stock
+  severity          String   // info|warning|critical
+  
+  message           String
+  
+  // Statut
+  isResolved        Boolean  @default(false)
+  resolvedAt        DateTime?
+  resolvedBy        Int?
+  resolver          User?    @relation(fields: [resolvedBy], references: [id])
+  
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+  
+  @@index([inventoryItemId])
+  @@index([type])
+  @@index([isResolved])
+  @@index([createdAt])
+}
+
+// ============================================
+// ADVANCED PATIENT PORTAL
+// ============================================
+
+model FamilyAccount {
+  id                Int      @id @default(autoincrement())
+  
+  // Compte principal (chef de famille)
+  primaryPatientId  Int      @unique
+  primaryPatient    Patient  @relation("PrimaryFamilyAccount", fields: [primaryPatientId], references: [id])
+  
+  // Membres de la famille
+  members           FamilyMember[]
+  
+  name              String?  // Nom de la famille (optionnel)
+  
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+  
+  @@index([primaryPatientId])
+}
+
+model FamilyMember {
+  id                Int      @id @default(autoincrement())
+  
+  familyAccountId   Int
+  familyAccount     FamilyAccount @relation(fields: [familyAccountId], references: [id], onDelete: Cascade)
+  
+  patientId         Int      @unique
+  patient           Patient  @relation(fields: [patientId], references: [id], onDelete: Cascade)
+  
+  relationship      String   // parent|child|spouse|sibling|other
+  canBookFor        Boolean  @default(true)  // Peut prendre RDV pour ce membre
+  canViewRecords    Boolean  @default(true)  // Peut voir dossier médical
+  
+  addedAt           DateTime @default(now())
+  
+  @@index([familyAccountId])
+  @@index([patientId])
+}
+
+model VaccinationRecord {
+  id                Int      @id @default(autoincrement())
+  
+  patientId         Int
+  patient           Patient  @relation(fields: [patientId], references: [id], onDelete: Cascade)
+  
+  // Informations du vaccin
+  vaccineName       String
+  vaccineType       String?  // BCG|DTC|Polio|ROR|etc
+  
+  // Administration
+  administeredAt    DateTime
+  administeredBy    String?  // Nom du médecin/infirmier
+  location          String?  // Lieu de vaccination
+  
+  // Lot et fabricant
+  batchNumber       String?
+  manufacturer      String?
+  expiryDate        DateTime?
+  
+  // Dose
+  doseNumber        Int?     // 1ère dose, 2ème dose, rappel
+  totalDoses        Int?     // Nombre total de doses requises
+  
+  // Prochaine dose
+  nextDoseDate      DateTime?
+  
+  // Réaction
+  reaction          String?  // Aucune|Légère|Modérée|Sévère
+  notes             String?
+  
+  // Document
+  certificateUrl    String?  // URL du certificat de vaccination
+  
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+  
+  @@index([patientId])
+  @@index([vaccineName])
+  @@index([administeredAt])
+}
+
+model GrowthRecord {
+  id                Int      @id @default(autoincrement())
+  
+  patientId         Int
+  patient           Patient  @relation(fields: [patientId], references: [id], onDelete: Cascade)
+  
+  // Date de la mesure
+  measuredAt        DateTime
+  
+  // Âge au moment de la mesure (en mois)
+  ageInMonths       Int
+  
+  // Mesures
+  weight            Float?   // Poids en kg
+  height            Float?   // Taille en cm
+  headCircumference Float?   // Périmètre crânien en cm (pour enfants)
+  
+  // BMI (calculé automatiquement)
+  bmi               Float?
+  
+  // Percentiles (selon courbes OMS)
+  weightPercentile  Float?
+  heightPercentile  Float?
+  bmiPercentile     Float?
+  
+  // Contexte
+  measuredBy        String?  // Médecin/infirmier
+  location          String?  // Lieu de la mesure
+  notes             String?
+  
+  createdAt         DateTime @default(now())
+  
+  @@index([patientId])
+  @@index([measuredAt])
+  @@index([ageInMonths])
+}
+
+model HealthDocument {
+  id                Int      @id @default(autoincrement())
+  
+  patientId         Int
+  patient           Patient  @relation(fields: [patientId], references: [id], onDelete: Cascade)
+  
+  // Type de document
+  type              String   // vaccination_card|growth_chart|lab_result|imaging|prescription|other
+  
+  // Informations
+  title             String
+  description       String?
+  
+  // Fichier
+  fileUrl           String
+  fileName          String
+  fileType          String   // application/pdf|image/jpeg|etc
+  fileSize          Int      // en bytes
+  
+  // Métadonnées
+  documentDate      DateTime? // Date du document (ex: date de l'analyse)
+  uploadedBy        Int?
+  uploader          User?    @relation(fields: [uploadedBy], references: [id])
+  
+  // Tags pour recherche
+  tags              String?  // JSON array de tags
+  
+  // Visibilité
+  isShared          Boolean  @default(false) // Partagé avec médecins
+  sharedWith        String?  // JSON array d'IDs de médecins
+  
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+  
+  @@index([patientId])
+  @@index([type])
+  @@index([documentDate])
+}
+
+model HealthMetric {
+  id                Int      @id @default(autoincrement())
+  
+  patientId         Int
+  patient           Patient  @relation(fields: [patientId], references: [id], onDelete: Cascade)
+  
+  // Type de métrique
+  type              String   // blood_pressure|heart_rate|temperature|glucose|weight|steps|sleep|etc
+  
+  // Valeur
+  value             Float
+  unit              String   // mmHg|bpm|°C|mg/dL|kg|steps|hours|etc
+  
+  // Pour tension artérielle (2 valeurs)
+  systolic          Float?
+  diastolic         Float?
+  
+  // Date et heure de la mesure
+  measuredAt        DateTime
+  
+  // Source
+  source            String?  // manual|device|wearable
+  deviceName        String?  // Apple Watch|Fitbit|etc
+  
+  // Contexte
+  notes             String?
+  tags              String?  // JSON array
+  
+  createdAt         DateTime @default(now())
+  
+  @@index([patientId])
+  @@index([type])
+  @@index([measuredAt])
+}
+
+// ============================================
+// INTERNATIONALIZATION (i18n)
+// ============================================
+
+model Translation {
+  id                Int      @id @default(autoincrement())
+  
+  // Clé de traduction (unique par langue)
+  key               String
+  
+  // Langue (ISO 639-1)
+  language          String   // fr|wo|en
+  
+  // Traduction
+  value             String
+  
+  // Namespace (pour organiser)
+  namespace         String   @default("common") // common|medical|ui|errors|etc
+  
+  // Métadonnées
+  description       String?  // Description pour les traducteurs
+  context           String?  // Contexte d'utilisation
+  
+  // Statut
+  isVerified        Boolean  @default(false) // Vérifié par un traducteur professionnel
+  verifiedBy        String?
+  verifiedAt        DateTime?
+  
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+  
+  @@unique([key, language, namespace])
+  @@index([language])
+  @@index([namespace])
+  @@index([key])
+}
+
+model UserLanguagePreference {
+  id                Int      @id @default(autoincrement())
+  
+  userId            Int      @unique
+  user              User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  // Langue préférée
+  preferredLanguage String   @default("fr") // fr|wo|en
+  
+  // Langues secondaires
+  secondaryLanguages String? // JSON array
+  
+  // Préférences de format
+  dateFormat        String   @default("DD/MM/YYYY")
+  timeFormat        String   @default("24h") // 24h|12h
+  timezone          String   @default("Africa/Dakar")
+  
+  // Préférences de contenu
+  showTransliteration Boolean @default(false) // Afficher translittération (pour Wolof)
+  
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+  
+  @@index([userId])
+  @@index([preferredLanguage])
+}
+
+// ============================================
+// BILLING & PAYMENTS
+// ============================================
+
+model PricingPlan {
+  id                Int      @id @default(autoincrement())
+  
+  // Informations du plan
+  name              String   // Starter|Professional|Enterprise|Custom
+  slug              String   @unique
+  description       String?
+  
+  // Tarification
+  monthlyPrice      Float    // Prix mensuel en FCFA
+  yearlyPrice       Float?   // Prix annuel en FCFA (avec réduction)
+  currency          String   @default("XOF") // FCFA
+  
+  // Limites du plan
+  maxDoctors        Int?     // Nombre max de médecins (null = illimité)
+  maxPatients       Int?     // Nombre max de patients (null = illimité)
+  maxAppointments   Int?     // Rendez-vous par mois (null = illimité)
+  maxStorage        Int?     // Stockage en GB (null = illimité)
+  
+  // Fonctionnalités incluses
+  features          Json     // Array de features
+  
+  // Modules optionnels
+  includesChat      Boolean  @default(false)
+  includesPharmacy  Boolean  @default(false)
+  includesTelemed   Boolean  @default(false)
+  includesAnalytics Boolean  @default(false)
+  
+  // Statut
+  isActive          Boolean  @default(true)
+  isPublic          Boolean  @default(true) // Visible publiquement
+  
+  // Relations
+  subscriptions     Subscription[]
+  
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+  
+  @@index([slug])
+  @@index([isActive])
+}
+
+model Subscription {
+  id                Int      @id @default(autoincrement())
+  
+  // Organisation abonnée
+  organizationId    Int
+  organization      Organization @relation(fields: [organizationId], references: [id])
+  
+  // Plan souscrit
+  planId            Int
+  plan              PricingPlan @relation(fields: [planId], references: [id])
+  
+  // Période
+  billingCycle      String   // monthly|yearly
+  startDate         DateTime
+  endDate           DateTime
+  
+  // Statut
+  status            String   @default("active") // active|cancelled|suspended|expired|trial
+  
+  // Essai gratuit
+  trialEndsAt       DateTime?
+  isTrial           Boolean  @default(false)
+  
+  // Renouvellement
+  autoRenew         Boolean  @default(true)
+  cancelledAt       DateTime?
+  cancelReason      String?
+  
+  // Facturation
+  invoices          Invoice[]
+  
+  // Métadonnées
+  metadata          Json?    // Informations supplémentaires
+  
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+  
+  @@index([organizationId])
+  @@index([planId])
+  @@index([status])
+  @@index([endDate])
+}
+
+model Invoice {
+  id                Int      @id @default(autoincrement())
+  
+  // Numéro de facture unique
+  invoiceNumber     String   @unique
+  
+  // Client
+  organizationId    Int
+  organization      Organization @relation(fields: [organizationId], references: [id])
+  
+  // Abonnement (si applicable)
+  subscriptionId    Int?
+  subscription      Subscription? @relation(fields: [subscriptionId], references: [id])
+  
+  // Rendez-vous (si facturation consultation)
+  appointmentId     Int?
+  appointment       Appointment? @relation(fields: [appointmentId], references: [id])
+  
+  // Type de facture
+  type              String   // subscription|consultation|service|other
+  
+  // Montants
+  subtotal          Float    // Sous-total
+  taxRate           Float    @default(0) // Taux de TVA (%)
+  taxAmount         Float    @default(0) // Montant TVA
+  discountAmount    Float    @default(0) // Réduction
+  total             Float    // Total à payer
+  currency          String   @default("XOF")
+  
+  // Dates
+  issueDate         DateTime @default(now())
+  dueDate           DateTime
+  
+  // Statut
+  status            String   @default("pending") // pending|paid|overdue|cancelled|refunded
+  paidAt            DateTime?
+  
+  // Ligne de facture
+  items             InvoiceItem[]
+  
+  // Paiements
+  payments          Payment[]
+  
+  // Notes
+  notes             String?
+  
+  // PDF
+  pdfUrl            String?
+  
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+  
+  @@index([organizationId])
+  @@index([subscriptionId])
+  @@index([appointmentId])
+  @@index([status])
+  @@index([dueDate])
+  @@index([invoiceNumber])
+}
+
+model InvoiceItem {
+  id                Int      @id @default(autoincrement())
+  
+  invoiceId         Int
+  invoice           Invoice  @relation(fields: [invoiceId], references: [id], onDelete: Cascade)
+  
+  // Description
+  description       String
+  
+  // Quantité et prix
+  quantity          Int      @default(1)
+  unitPrice         Float
+  
+  // Montant
+  amount            Float    // quantity * unitPrice
+  
+  // Métadonnées
+  metadata          Json?
+  
+  @@index([invoiceId])
+}
+
+model Payment {
+  id                Int      @id @default(autoincrement())
+  
+  // Facture payée
+  invoiceId         Int
+  invoice           Invoice  @relation(fields: [invoiceId], references: [id])
+  
+  // Montant
+  amount            Float
+  currency          String   @default("XOF")
+  
+  // Méthode de paiement
+  paymentMethod     String   // card|mobile_money|bank_transfer|cash|check
+  
+  // Détails méthode
+  paymentDetails    Json?    // Numéro de transaction, etc.
+  
+  // Fournisseur de paiement
+  provider          String?  // wave|orange_money|free_money|stripe|paypal
+  
+  // Transaction externe
+  transactionId     String?  // ID de la transaction chez le provider
+  
+  // Statut
+  status            String   @default("pending") // pending|completed|failed|refunded
+  
+  // Dates
+  paidAt            DateTime?
+  
+  // Remboursement
+  refund            Refund?
+  
+  // Notes
+  notes             String?
+  
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+  
+  @@index([invoiceId])
+  @@index([status])
+  @@index([transactionId])
+}
+
+model Refund {
+  id                Int      @id @default(autoincrement())
+  
+  // Paiement remboursé
+  paymentId         Int      @unique
+  payment           Payment  @relation(fields: [paymentId], references: [id])
+  
+  // Montant remboursé
+  amount            Float
+  currency          String   @default("XOF")
+  
+  // Raison
+  reason            String
+  
+  // Statut
+  status            String   @default("pending") // pending|completed|failed
+  
+  // Transaction de remboursement
+  refundTransactionId String?
+  
+  // Dates
+  requestedAt       DateTime @default(now())
+  processedAt       DateTime?
+  
+  // Traité par
+  processedBy       Int?
+  processor         User?    @relation(fields: [processedBy], references: [id])
+  
+  // Notes
+  notes             String?
+  
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+  
+  @@index([paymentId])
+  @@index([status])
+}
+
+model PaymentMethod {
+  id                Int      @id @default(autoincrement())
+  
+  // Organisation propriétaire
+  organizationId    Int
+  organization      Organization @relation(fields: [organizationId], references: [id])
+  
+  // Type
+  type              String   // card|mobile_money|bank_account
+  
+  // Détails (cryptés)
+  details           Json     // Numéro masqué, nom, etc.
+  
+  // Par défaut
+  isDefault         Boolean  @default(false)
+  
+  // Statut
+  isActive          Boolean  @default(true)
+  
+  // Vérification
+  isVerified        Boolean  @default(false)
+  verifiedAt        DateTime?
+  
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+  
+  @@index([organizationId])
+  @@index([isDefault])
+}
+
+model BillingHistory {
+  id                Int      @id @default(autoincrement())
+  
+  // Organisation
+  organizationId    Int
+  organization      Organization @relation(fields: [organizationId], references: [id])
+  
+  // Type d'événement
+  eventType         String   // subscription_created|subscription_renewed|payment_received|refund_issued|etc.
+  
+  // Description
+  description       String
+  
+  // Montant (si applicable)
+  amount            Float?
+  currency          String   @default("XOF")
+  
+  // Références
+  invoiceId         Int?
+  subscriptionId    Int?
+  paymentId         Int?
+  
+  // Métadonnées
+  metadata          Json?
+  
+  createdAt         DateTime @default(now())
+  
+  @@index([organizationId])
+  @@index([eventType])
+  @@index([createdAt])
+}
+
+// ============================================
+// BED MANAGEMENT MODELS
+// ============================================
+
+model Room {
+  id              Int           @id @default(autoincrement())
+  number          String
+  type            String        // simple|double|icu|emergency
+  status          String        @default("available") // available|occupied|cleaning|maintenance
+  
+  departmentId    Int
+  department      Department    @relation(fields: [departmentId], references: [id])
+  
+  organizationId  Int
+  organization    Organization  @relation(fields: [organizationId], references: [id])
+  
+  beds            Bed[]
+  
+  createdAt       DateTime      @default(now())
+  updatedAt       DateTime      @updatedAt
+
+  @@index([organizationId])
+  @@index([departmentId])
+}
+
+model Bed {
+  id              Int           @id @default(autoincrement())
+  number          String        // e.g., "Bed 1"
+  status          String        @default("available") // available|occupied|maintenance
+  
+  roomId          Int
+  room            Room          @relation(fields: [roomId], references: [id], onDelete: Cascade)
+  
+  // Track current occupancy
+  currentAdmissionId Int?       @unique
+  currentAdmission   Admission? @relation("CurrentBedAdmission", fields: [currentAdmissionId], references: [id])
+  
+  admissions      Admission[]   @relation("BedHistory")
+  
+  createdAt       DateTime      @default(now())
+  updatedAt       DateTime      @updatedAt
+}
+
+model Admission {
+  id              Int           @id @default(autoincrement())
+  patientId       Int
+  patient         Patient       @relation(fields: [patientId], references: [id])
+  
+  bedId           Int
+  bed             Bed           @relation("BedHistory", fields: [bedId], references: [id])
+  
+  currentBed      Bed?          @relation("CurrentBedAdmission")
+  
+  admittedAt      DateTime      @default(now())
+  dischargedAt    DateTime?
+  
+  status          String        @default("admitted") // admitted|discharged|transferred
+  
+  reason          String?
+  notes           String?
+  
+  organizationId  Int
+  organization    Organization @relation(fields: [organizationId], references: [id])
+  
+  createdAt       DateTime      @default(now())
+  updatedAt       DateTime      @updatedAt
+
+  @@index([patientId])
+  @@index([organizationId])
+}
+
+// ============================================
+// ADVANCED PHARMACY MODELS
+// ============================================
+
+model Supplier {
+  id              Int           @id @default(autoincrement())
+  name            String
+  contactName     String?
+  email           String?
+  phone           String?
+  address         String?
+  
+  organizationId  Int
+  organization    Organization  @relation(fields: [organizationId], references: [id])
+  
+  inventoryItems  InventoryItem[]
+  purchaseOrders  PurchaseOrder[]
+  
+  createdAt       DateTime      @default(now())
+  updatedAt       DateTime      @updatedAt
+
+  @@index([organizationId])
+}
+
+model PurchaseOrder {
+  id              Int           @id @default(autoincrement())
+  orderNumber     String        @unique
+  
+  supplierId      Int
+  supplier        Supplier      @relation(fields: [supplierId], references: [id])
+  
+  organizationId  Int
+  organization    Organization  @relation(fields: [organizationId], references: [id])
+  
+  status          String        @default("pending") // pending|ordered|received|cancelled
+  totalAmount     Float         @default(0)
+  
+  items           PurchaseOrderItem[]
+  
+  createdAt       DateTime      @default(now())
+  updatedAt       DateTime      @updatedAt
+
+  @@index([organizationId])
+  @@index([supplierId])
+}
+
+model PurchaseOrderItem {
+  id              Int           @id @default(autoincrement())
+  purchaseOrderId Int
+  purchaseOrder   PurchaseOrder @relation(fields: [purchaseOrderId], references: [id], onDelete: Cascade)
+  
+  medicationName  String
+  quantity        Int
+  unitPrice       Float
+  
+  createdAt       DateTime      @default(now())
+}
+
+model DoctorRating {
+  id              Int           @id @default(autoincrement())
+  
+  doctorId        Int
+  doctor          Doctor        @relation(fields: [doctorId], references: [id])
+  
+  patientId       Int
+  patient         Patient       @relation(fields: [patientId], references: [id])
+  
+  appointmentId   Int?          @unique
+  appointment     Appointment?  @relation(fields: [appointmentId], references: [id])
+  
+  score           Int           // 1 to 5
+  comment         String?
+  
+  createdAt       DateTime      @default(now())
+  
+  @@index([doctorId])
+  @@index([patientId])
+}
+

@@ -35,8 +35,11 @@ export default function PatientDashboard() {
     const [appointments, setAppointments] = useState<Appointment[]>([])
     const user = getUser()
 
+    const [tips, setTips] = useState<any[]>([])
+
     useEffect(() => {
         loadAppointments()
+        loadTips()
     }, [])
 
     const loadAppointments = async () => {
@@ -47,6 +50,15 @@ export default function PatientDashboard() {
             console.error("Error loading appointments:", error)
         } finally {
             setLoading(false)
+        }
+    }
+
+    const loadTips = async () => {
+        try {
+            const res = await api.get("/health-tips")
+            setTips(res.data)
+        } catch (error) {
+            console.error("Error loading tips:", error)
         }
     }
 
@@ -62,6 +74,17 @@ export default function PatientDashboard() {
                 {statusConfig.label}
             </Badge>
         )
+    }
+
+    const getTipIcon = (iconName: string) => {
+        switch (iconName) {
+            case 'droplet': return Activity
+            case 'activity': return Activity
+            case 'moon': return Clock
+            case 'alert-circle': return Activity
+            case 'heart': return Heart
+            default: return Activity
+        }
     }
 
     if (loading) {
@@ -264,39 +287,24 @@ export default function PatientDashboard() {
                         </CardDescription>
                     </CardHeader>
                     <CardContent className="space-y-4">
-                        <div className="flex gap-3">
-                            <div className="h-8 w-8 rounded-full bg-green-100 flex items-center justify-center flex-shrink-0">
-                                <Heart className="h-4 w-4 text-green-600" />
-                            </div>
-                            <div>
-                                <p className="font-medium">Activité physique</p>
-                                <p className="text-sm text-muted-foreground">
-                                    30 minutes d&apos;exercice par jour recommandées
-                                </p>
-                            </div>
-                        </div>
-                        <div className="flex gap-3">
-                            <div className="h-8 w-8 rounded-full bg-blue-100 flex items-center justify-center flex-shrink-0">
-                                <Activity className="h-4 w-4 text-blue-600" />
-                            </div>
-                            <div>
-                                <p className="font-medium">Hydratation</p>
-                                <p className="text-sm text-muted-foreground">
-                                    Buvez au moins 1.5L d&apos;eau par jour
-                                </p>
-                            </div>
-                        </div>
-                        <div className="flex gap-3">
-                            <div className="h-8 w-8 rounded-full bg-purple-100 flex items-center justify-center flex-shrink-0">
-                                <Clock className="h-4 w-4 text-purple-600" />
-                            </div>
-                            <div>
-                                <p className="font-medium">Sommeil</p>
-                                <p className="text-sm text-muted-foreground">
-                                    7-8 heures de sommeil par nuit
-                                </p>
-                            </div>
-                        </div>
+                        {tips.length > 0 ? tips.map((tip, i) => {
+                            const Icon = getTipIcon(tip.icon)
+                            return (
+                                <div key={i} className="flex gap-3">
+                                    <div className={`h-8 w-8 rounded-full bg-${tip.color}-100 flex items-center justify-center flex-shrink-0`}>
+                                        <Icon className={`h-4 w-4 text-${tip.color}-600`} />
+                                    </div>
+                                    <div>
+                                        <p className="font-medium">{tip.title}</p>
+                                        <p className="text-sm text-muted-foreground">
+                                            {tip.content}
+                                        </p>
+                                    </div>
+                                </div>
+                            )
+                        }) : (
+                            <p className="text-sm text-muted-foreground">Chargement des conseils...</p>
+                        )}
                     </CardContent>
                 </Card>
             </div>

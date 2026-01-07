@@ -69,9 +69,12 @@ export const sendAlert = async (
     // Send to Sentry
     captureMessage(`[${severity.toUpperCase()}] ${title}: ${message}`, 'error')
 
-    // TODO: Send to Slack, email, SMS, etc.
-    // await sendSlackAlert(title, message, severity)
-    // await sendEmailAlert(title, message, severity)
+    // Send to Slack and Email
+    const { sendSlackAlert, sendEmailAlert } = await import('./alertProviders.js')
+    await Promise.allSettled([
+        sendSlackAlert(title, message, severity),
+        sendEmailAlert(title, message, severity),
+    ])
 }
 
 // Predefined alerts

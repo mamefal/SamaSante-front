@@ -79,12 +79,27 @@ export function clearUser() {
   localStorage.removeItem(USER_KEY)
 }
 
-export function logout() {
-  clearUser()
+export async function logout() {
+  try {
+    // Call backend logout endpoint
+    if (hasWindow()) {
+      await fetch('/api/auth/logout', {
+        method: 'POST',
+        credentials: 'include', // Send cookies
+      }).catch(() => {
+        // Ignore errors, we'll clear local data anyway
+      });
+    }
+  } catch (error) {
+    console.error('Logout error:', error);
+  } finally {
+    // Always clear local data
+    clearUser();
 
-  // Clear cookies - the backend will also clear them on /auth/logout
-  if (hasWindow()) {
-    document.cookie = 'token=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT'
+    // Clear cookies client-side as well
+    if (hasWindow()) {
+      document.cookie = 'token=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT';
+    }
   }
 }
 

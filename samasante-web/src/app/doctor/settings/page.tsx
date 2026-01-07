@@ -1,13 +1,108 @@
+"use client"
 
+import { useState, useEffect } from "react"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Switch } from "@/components/ui/switch"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { Settings, Bell, Shield, Calendar, User, Save } from "lucide-react"
+import { Settings, Bell, Shield, Calendar, User, Save, Loader2 } from "lucide-react"
+import { api } from "@/lib/api"
+import { getDoctorId } from "@/lib/auth"
+import { toast } from "sonner"
 
-export default async function DoctorSettings() {
+export default function DoctorSettings() {
+  const [loading, setLoading] = useState(true)
+  const [saving, setSaving] = useState(false)
+  const [settings, setSettings] = useState({
+    notifications: {
+      newAppointment: true,
+      reminders: true,
+      cancellations: true,
+      reviews: false
+    },
+    calendar: {
+      defaultView: "week",
+      startTime: "08:00",
+      endTime: "18:00",
+      showWeekends: false
+    },
+    privacy: {
+      publicProfile: true,
+      showReviews: true,
+      dataSharing: false,
+      retention: "24"
+    },
+    system: {
+      language: "fr",
+      timezone: "GMT",
+      theme: "light",
+      compactMode: false
+    },
+    backup: {
+      autoBackup: true
+    }
+  })
+
+  useEffect(() => {
+    fetchSettings()
+  }, [])
+
+  const fetchSettings = async () => {
+    const doctorId = getDoctorId()
+    if (!doctorId) return
+
+    try {
+      const res = await api.get(`/doctors/${doctorId}`)
+      if (res.data && res.data.settings) {
+        // Merge with default settings to ensure all keys exist
+        setSettings(prev => ({
+          ...prev,
+          ...res.data.settings
+        }))
+      }
+    } catch (error) {
+      console.error("Error fetching settings:", error)
+      toast.error("Erreur lors du chargement des paramètres")
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  const handleSave = async () => {
+    const doctorId = getDoctorId()
+    if (!doctorId) return
+
+    setSaving(true)
+    try {
+      await api.patch(`/doctors/${doctorId}/settings`, settings)
+      toast.success("Paramètres sauvegardés")
+    } catch (error) {
+      console.error("Error saving settings:", error)
+      toast.error("Erreur lors de la sauvegarde")
+    } finally {
+      setSaving(false)
+    }
+  }
+
+  const updateSetting = (category: keyof typeof settings, key: string, value: any) => {
+    setSettings(prev => ({
+      ...prev,
+      [category]: {
+        ...prev[category],
+        [key]: value
+      }
+    }))
+  }
+
+  if (loading) {
+    return (
+      <div className="flex justify-center items-center h-screen">
+        <Loader2 className="h-8 w-8 animate-spin text-blue-600" />
+      </div>
+    )
+  }
 
   return (
     <div className="p-6 space-y-6">
@@ -17,8 +112,8 @@ export default async function DoctorSettings() {
           <h1 className="text-3xl font-bold text-foreground">Paramètres</h1>
           <p className="text-muted-foreground">Configurez vos préférences et paramètres</p>
         </div>
-        <Button>
-          <Save className="h-4 w-4 mr-2" />
+        <Button onClick={handleSave} disabled={saving}>
+          {saving ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Save className="h-4 w-4 mr-2" />}
           Sauvegarder
         </Button>
       </div>
@@ -67,28 +162,40 @@ export default async function DoctorSettings() {
                 <Label>Nouveaux rendez-vous</Label>
                 <p className="text-sm text-muted-foreground">Recevoir une notification pour chaque nouveau RDV</p>
               </div>
-              <Switch defaultChecked />
+              <Switch
+                checked={settings.notifications.newAppointment}
+                onCheckedChange={(checked) => updateSetting('notifications', 'newAppointment', checked)}
+              />
             </div>
             <div className="flex items-center justify-between">
               <div className="space-y-0.5">
                 <Label>Rappels de consultation</Label>
                 <p className="text-sm text-muted-foreground">Rappel 30 minutes avant chaque consultation</p>
               </div>
-              <Switch defaultChecked />
+              <Switch
+                checked={settings.notifications.reminders}
+                onCheckedChange={(checked) => updateSetting('notifications', 'reminders', checked)}
+              />
             </div>
             <div className="flex items-center justify-between">
               <div className="space-y-0.5">
                 <Label>Annulations</Label>
                 <p className="text-sm text-muted-foreground">Notification en cas d'annulation de RDV</p>
               </div>
-              <Switch defaultChecked />
+              <Switch
+                checked={settings.notifications.cancellations}
+                onCheckedChange={(checked) => updateSetting('notifications', 'cancellations', checked)}
+              />
             </div>
             <div className="flex items-center justify-between">
               <div className="space-y-0.5">
                 <Label>Nouveaux avis patients</Label>
                 <p className="text-sm text-muted-foreground">Notification pour les nouveaux commentaires</p>
               </div>
-              <Switch />
+              <Switch
+                checked={settings.notifications.reviews}
+                onCheckedChange={(checked) => updateSetting('notifications', 'reviews', checked)}
+              />
             </div>
           </CardContent>
         </Card>
@@ -105,7 +212,10 @@ export default async function DoctorSettings() {
           <CardContent className="space-y-4">
             <div className="space-y-2">
               <Label htmlFor="default-view">Vue par défaut</Label>
-              <Select defaultValue="week">
+              <Select
+                value={settings.calendar.defaultView}
+                onValueChange={(value) => updateSetting('calendar', 'defaultView', value)}
+              >
                 <SelectTrigger>
                   <SelectValue />
                 </SelectTrigger>
@@ -118,7 +228,10 @@ export default async function DoctorSettings() {
             </div>
             <div className="space-y-2">
               <Label htmlFor="start-time">Heure de début</Label>
-              <Select defaultValue="08:00">
+              <Select
+                value={settings.calendar.startTime}
+                onValueChange={(value) => updateSetting('calendar', 'startTime', value)}
+              >
                 <SelectTrigger>
                   <SelectValue />
                 </SelectTrigger>
@@ -131,7 +244,10 @@ export default async function DoctorSettings() {
             </div>
             <div className="space-y-2">
               <Label htmlFor="end-time">Heure de fin</Label>
-              <Select defaultValue="18:00">
+              <Select
+                value={settings.calendar.endTime}
+                onValueChange={(value) => updateSetting('calendar', 'endTime', value)}
+              >
                 <SelectTrigger>
                   <SelectValue />
                 </SelectTrigger>
@@ -148,7 +264,10 @@ export default async function DoctorSettings() {
                 <Label>Afficher les week-ends</Label>
                 <p className="text-sm text-muted-foreground">Inclure samedi et dimanche dans l'agenda</p>
               </div>
-              <Switch />
+              <Switch
+                checked={settings.calendar.showWeekends}
+                onCheckedChange={(checked) => updateSetting('calendar', 'showWeekends', checked)}
+              />
             </div>
           </CardContent>
         </Card>
@@ -168,25 +287,37 @@ export default async function DoctorSettings() {
                 <Label>Profil public</Label>
                 <p className="text-sm text-muted-foreground">Permettre aux patients de voir votre profil</p>
               </div>
-              <Switch defaultChecked />
+              <Switch
+                checked={settings.privacy.publicProfile}
+                onCheckedChange={(checked) => updateSetting('privacy', 'publicProfile', checked)}
+              />
             </div>
             <div className="flex items-center justify-between">
               <div className="space-y-0.5">
                 <Label>Afficher les avis</Label>
                 <p className="text-sm text-muted-foreground">Rendre les avis patients visibles publiquement</p>
               </div>
-              <Switch defaultChecked />
+              <Switch
+                checked={settings.privacy.showReviews}
+                onCheckedChange={(checked) => updateSetting('privacy', 'showReviews', checked)}
+              />
             </div>
             <div className="flex items-center justify-between">
               <div className="space-y-0.5">
                 <Label>Partage de données</Label>
                 <p className="text-sm text-muted-foreground">Autoriser l'analyse anonyme des données</p>
               </div>
-              <Switch />
+              <Switch
+                checked={settings.privacy.dataSharing}
+                onCheckedChange={(checked) => updateSetting('privacy', 'dataSharing', checked)}
+              />
             </div>
             <div className="space-y-2">
               <Label htmlFor="data-retention">Rétention des données (mois)</Label>
-              <Select defaultValue="24">
+              <Select
+                value={settings.privacy.retention}
+                onValueChange={(value) => updateSetting('privacy', 'retention', value)}
+              >
                 <SelectTrigger>
                   <SelectValue />
                 </SelectTrigger>
@@ -213,7 +344,10 @@ export default async function DoctorSettings() {
           <CardContent className="space-y-4">
             <div className="space-y-2">
               <Label htmlFor="language">Langue</Label>
-              <Select defaultValue="fr">
+              <Select
+                value={settings.system.language}
+                onValueChange={(value) => updateSetting('system', 'language', value)}
+              >
                 <SelectTrigger>
                   <SelectValue />
                 </SelectTrigger>
@@ -226,7 +360,10 @@ export default async function DoctorSettings() {
             </div>
             <div className="space-y-2">
               <Label htmlFor="timezone">Fuseau horaire</Label>
-              <Select defaultValue="GMT">
+              <Select
+                value={settings.system.timezone}
+                onValueChange={(value) => updateSetting('system', 'timezone', value)}
+              >
                 <SelectTrigger>
                   <SelectValue />
                 </SelectTrigger>
@@ -239,7 +376,10 @@ export default async function DoctorSettings() {
             </div>
             <div className="space-y-2">
               <Label htmlFor="theme">Thème</Label>
-              <Select defaultValue="light">
+              <Select
+                value={settings.system.theme}
+                onValueChange={(value) => updateSetting('system', 'theme', value)}
+              >
                 <SelectTrigger>
                   <SelectValue />
                 </SelectTrigger>
@@ -255,7 +395,10 @@ export default async function DoctorSettings() {
                 <Label>Mode compact</Label>
                 <p className="text-sm text-muted-foreground">Interface plus dense pour plus d'informations</p>
               </div>
-              <Switch />
+              <Switch
+                checked={settings.system.compactMode}
+                onCheckedChange={(checked) => updateSetting('system', 'compactMode', checked)}
+              />
             </div>
           </CardContent>
         </Card>
@@ -272,7 +415,10 @@ export default async function DoctorSettings() {
                 <Label>Sauvegarde automatique</Label>
                 <p className="text-sm text-muted-foreground">Sauvegarde hebdomadaire de vos données</p>
               </div>
-              <Switch defaultChecked />
+              <Switch
+                checked={settings.backup.autoBackup}
+                onCheckedChange={(checked) => updateSetting('backup', 'autoBackup', checked)}
+              />
             </div>
             <div className="space-y-2">
               <Button variant="outline" className="w-full bg-transparent">

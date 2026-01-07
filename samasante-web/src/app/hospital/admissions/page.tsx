@@ -17,7 +17,9 @@ import {
     Filter,
     ArrowUpDown
 } from "lucide-react"
-import { useState } from "react"
+import { useState, useEffect } from "react"
+import { api } from "@/lib/api"
+import { toast } from "sonner"
 import { Avatar, AvatarFallback } from "@/components/ui/avatar"
 import {
     DropdownMenu,
@@ -31,41 +33,39 @@ import {
 export default function HospitalAdmissions() {
     const [searchTerm, setSearchTerm] = useState("")
 
-    const admissions = [
-        {
-            id: 1,
-            patient: "Aminata Touré",
-            age: 34,
-            room: "Chambre 205",
-            department: "Cardiologie",
-            admissionDate: "2025-11-25",
-            status: "Stable",
-            doctor: "Dr. Fall",
-            priority: "Moyenne"
-        },
-        {
-            id: 2,
-            patient: "Ibrahima Sarr",
-            age: 58,
-            room: "Chambre 312",
-            department: "Chirurgie",
-            admissionDate: "2025-11-27",
-            status: "Post-opératoire",
-            doctor: "Dr. Ndiaye",
-            priority: "Haute"
-        },
-        {
-            id: 3,
-            patient: "Khady Diop",
-            age: 42,
-            room: "Chambre 108",
-            department: "Pédiatrie",
-            admissionDate: "2025-11-28",
-            status: "En observation",
-            doctor: "Dr. Diop",
-            priority: "Faible"
+    const [admissions, setAdmissions] = useState<any[]>([])
+    const [loading, setLoading] = useState(true)
+    const [stats, setStats] = useState({ totalHospitalized: 0, availableBeds: 0, occupancyRate: 0 })
+
+    useEffect(() => {
+        fetchData()
+    }, [])
+
+    const fetchData = async () => {
+        try {
+            const [admissionsRes, roomsRes] = await Promise.all([
+                api.get("/admissions/active"),
+                api.get("/rooms")
+            ])
+            setAdmissions(admissionsRes.data)
+
+            const rooms = roomsRes.data
+            const totalBeds = rooms.reduce((acc: number, r: any) => acc + (r.beds?.length || 0), 0)
+            const availableBeds = rooms.reduce((acc: number, r: any) =>
+                acc + (r.beds?.filter((b: any) => b.status === 'available').length || 0), 0)
+
+            setStats({
+                totalHospitalized: admissionsRes.data.length,
+                availableBeds,
+                occupancyRate: totalBeds > 0 ? Math.round(((totalBeds - availableBeds) / totalBeds) * 100) : 0
+            })
+        } catch (error) {
+            console.error("Failed to fetch admissions:", error)
+            toast.error("Erreur lors du chargement des données")
+        } finally {
+            setLoading(false)
         }
-    ]
+    }
 
     const getStatusColor = (status: string) => {
         switch (status) {
@@ -105,7 +105,7 @@ export default function HospitalAdmissions() {
                         <div className="flex justify-between items-start">
                             <div>
                                 <p className="text-sm font-medium text-muted-foreground">Total Hospitalisés</p>
-                                <h3 className="text-3xl font-bold mt-2">{admissions.length}</h3>
+                                <h3 className="text-3xl font-bold mt-2">{stats.totalHospitalized}</h3>
                             </div>
                             <div className="p-2 bg-blue-50 rounded-lg">
                                 <Bed className="h-6 w-6 text-blue-600" />
@@ -119,7 +119,7 @@ export default function HospitalAdmissions() {
                         <div className="flex justify-between items-start">
                             <div>
                                 <p className="text-sm font-medium text-muted-foreground">Lits Disponibles</p>
-                                <h3 className="text-3xl font-bold mt-2 text-green-600">12</h3>
+                                <h3 className="text-3xl font-bold mt-2 text-green-600">{stats.availableBeds}</h3>
                             </div>
                             <div className="p-2 bg-green-50 rounded-lg">
                                 <Bed className="h-6 w-6 text-green-600" />
@@ -149,7 +149,7 @@ export default function HospitalAdmissions() {
                         <div className="flex justify-between items-start">
                             <div>
                                 <p className="text-sm font-medium text-muted-foreground">Taux d'Occupation</p>
-                                <h3 className="text-3xl font-bold mt-2">76%</h3>
+                                <h3 className="text-3xl font-bold mt-2">{stats.occupancyRate}%</h3>
                             </div>
                             <div className="p-2 bg-orange-50 rounded-lg">
                                 <Activity className="h-6 w-6 text-orange-600" />
@@ -195,20 +195,20 @@ export default function HospitalAdmissions() {
                                 <div className="flex items-center gap-4">
                                     <Avatar className="h-12 w-12 border-2 border-white shadow-sm">
                                         <AvatarFallback className="bg-blue-100 text-blue-700 font-bold">
-                                            {admission.patient.split(' ').map(n => n[0]).join('')}
+                                            {admission.patient?.firstName?.[0]}{admission.patient?.lastName?.[0]}
                                         </AvatarFallback>
                                     </Avatar>
                                     <div>
                                         <h3 className="font-semibold text-gray-900 group-hover:text-blue-600 transition-colors">
-                                            {admission.patient}
+                                            {admission.patient?.firstName} {admission.patient?.lastName}
                                         </h3>
                                         <div className="flex items-center gap-2 text-sm text-gray-500 mt-1">
                                             <span className="flex items-center gap-1">
-                                                <Bed className="h-3.5 w-3.5" /> {admission.room}
+                                                <Bed className="h-3.5 w-3.5" /> Room {admission.bed?.room?.number} - Bed {admission.bed?.number}
                                             </span>
                                             <span>•</span>
                                             <span className="flex items-center gap-1">
-                                                <Stethoscope className="h-3.5 w-3.5" /> {admission.department}
+                                                <Stethoscope className="h-3.5 w-3.5" /> Admission ID: {admission.id}
                                             </span>
                                         </div>
                                     </div>
@@ -220,7 +220,7 @@ export default function HospitalAdmissions() {
                                             <Clock className="h-3 w-3" /> Admis le
                                         </div>
                                         <span className="font-medium text-sm text-gray-900">
-                                            {new Date(admission.admissionDate).toLocaleDateString('fr-FR')}
+                                            {new Date(admission.admittedAt).toLocaleDateString('fr-FR')}
                                         </span>
                                     </div>
 

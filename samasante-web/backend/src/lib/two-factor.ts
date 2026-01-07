@@ -4,7 +4,7 @@ import QRCode from 'qrcode'
 import crypto from 'crypto'
 import { prisma } from './prisma.js'
 
-const APP_NAME = 'SamaSanté'
+const APP_NAME = 'AMINA'
 const ENCRYPTION_KEY = process.env.ENCRYPTION_KEY
 
 // Validation stricte de la clé de chiffrement

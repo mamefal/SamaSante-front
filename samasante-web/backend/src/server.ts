@@ -21,7 +21,7 @@ app.use('*', cors({
 
 app.use('*', compress())
 app.use('*', logger())
-app.get('/', (c) => c.text('SamaSanté API OK'))
+app.get('/', (c) => c.text('AMINA API OK'))
 app.route('/health', health)
 app.route('/api', api)
 app.route('/api/docs', swaggerRoutes)
@@ -31,7 +31,17 @@ app.onError((err, c) => {
   return c.text('Internal Server Error', 500)
 })
 
+import { socketService } from './lib/socket.js'
+import { setupNotificationWorker } from './lib/queue.js'
+
 const port = Number(process.env.PORT || 3000)
-serve({ fetch: app.fetch, port })
+const server = serve({ fetch: app.fetch, port })
+
+// Initialize WebSocket service
+socketService.initialize(server as any)
+
+// Initialize background workers
+setupNotificationWorker()
+
 console.log(`API running on http://localhost:${port}`)
 

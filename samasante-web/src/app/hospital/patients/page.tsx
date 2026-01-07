@@ -208,7 +208,12 @@ export default function HospitalPatients() {
                                         </div>
                                     </div>
                                     <div className="flex items-center gap-3 w-full md:w-auto mt-4 md:mt-0">
-                                        <Button variant="ghost" size="sm" className="text-gray-500 hover:text-blue-600">
+                                        <Button
+                                            variant="ghost"
+                                            size="sm"
+                                            className="text-gray-500 hover:text-blue-600"
+                                            onClick={() => window.location.href = `/hospital/patients/${patient.id}`}
+                                        >
                                             <FileText className="h-4 w-4 mr-2" />
                                             Dossier
                                         </Button>

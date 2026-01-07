@@ -11,11 +11,11 @@ app.get('/openapi.json', (c) => {
     return c.json({
         openapi: '3.0.0',
         info: {
-            title: 'SamaSanté API',
+            title: 'AMINA API',
             version: '1.0.0',
             description: 'API de gestion médicale pour hôpitaux',
             contact: {
-                name: 'Support SamaSanté',
+                name: 'Support AMINA',
                 email: 'support@samasante.com',
             },
         },
